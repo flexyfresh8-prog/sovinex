@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07090c">
+<meta name="description" content="Sonivex Studio — professional subwoofer design, audio-driven physics simulation and virtual test bench for Windows. Design. Simulate. Validate.">
+<meta property="og:title" content="Sonivex Studio — Design. Simulate. Validate.">
+<meta property="og:description" content="Professional subwoofer lab for Windows: import your 3D model, play your music, watch real electro-acoustic physics in real time.">
+<meta property="og:image" content="assets/icon.png">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<title>Sonivex Studio — Design. Simulate. Validate.</title>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
+</script>
+<style>
+:root{
+  --bg-0:#07090c; --bg-1:#0a0d11; --bg-2:#0f1319; --bg-3:#141922; --bg-4:#1a2029;
+  --line:#1c2530; --line-2:#232b38;
+  --accent:#22d3ee; --accent-dim:#0e7490; --accent-deep:#164e5a;
+  --txt-0:#e8edf4; --txt-1:#9aa7b8; --txt-2:#5c6b7e;
+  --radius:16px; --maxw:720px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  --mono:"Cascadia Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg-0); color:var(--txt-0); font-family:var(--font);
+  line-height:1.6; overflow-x:hidden;
+  padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right);
+}
+::selection{background:rgba(34,211,238,.28)}
+a{color:var(--accent);text-decoration:none}
+img,svg{display:block}
+.mono{font-family:var(--mono)}
+
+/* ---------- nav ---------- */
+nav{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left));
+  background:rgba(7,9,12,.82); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;color:var(--txt-0);font-weight:800;letter-spacing:.14em;font-size:.95rem}
+.brand .mark{
+  width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#0e2a33,#0a141a);border:1px solid var(--accent-deep);
+  box-shadow:0 0 18px rgba(34,211,238,.22) inset;
+}
+.brand b{color:var(--accent)}
+.nav-links{display:flex;gap:6px}
+.nav-links a{
+  color:var(--txt-1);font-size:.85rem;font-weight:600;padding:8px 12px;border-radius:10px;min-height:36px;
+  display:flex;align-items:center;
+}
+.nav-links a:active{background:var(--bg-3);color:var(--txt-0)}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative; text-align:center;
+  padding:64px 20px 48px;
+  background:
+    radial-gradient(1000px 480px at 50% -10%, rgba(34,211,238,.09), transparent 62%),
+    radial-gradient(700px 380px at 82% 8%, rgba(14,116,144,.10), transparent 60%);
+}
+.kicker{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.22em;color:var(--accent);
+  border:1px solid var(--accent-deep);background:rgba(14,116,144,.12);
+  padding:7px 14px;border-radius:999px;text-transform:uppercase;
+}
+.kicker .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.hero h1{
+  margin:22px 0 14px;font-size:clamp(2.3rem,9vw,3.6rem);line-height:1.08;letter-spacing:-.02em;font-weight:800;
+}
+.hero h1 .grad{
+  background:linear-gradient(92deg,var(--txt-0) 15%,var(--accent) 60%,#7deefd);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero .lede{color:var(--txt-1);font-size:1.02rem;max-width:34rem;margin:0 auto 28px}
+.cta-row{display:flex;flex-direction:column;gap:12px;max-width:22rem;margin:0 auto}
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  min-height:52px;padding:0 22px;border-radius:14px;font-weight:700;font-size:.98rem;
+  border:1px solid transparent;cursor:pointer;transition:transform .15s ease,box-shadow .2s ease,background .2s;
+}
+.btn:active{transform:scale(.975)}
+.btn-primary{
+  color:#041014;background:linear-gradient(180deg,#3ee2f5,#17b6d4);
+  box-shadow:0 10px 34px rgba(34,211,238,.28),0 2px 0 rgba(255,255,255,.25) inset;
+}
+.btn-ghost{color:var(--txt-0);background:rgba(15,19,25,.7);border-color:var(--line-2)}
+.btn-ghost:active{background:var(--bg-3)}
+.hero-note{margin-top:16px;color:var(--txt-2);font-size:.78rem;font-family:var(--mono)}
+
+/* ---------- speaker art ---------- */
+.sub{position:relative;width:250px;height:250px;margin:44px auto 0}
+.sub .frame{
+  position:absolute;inset:0;border-radius:50%;
+  background:
+    radial-gradient(circle at 32% 28%, #2b3542 0%, #161c24 42%, #0b0f14 78%),
+    linear-gradient(145deg,#1a2029,#0a0d11);
+  border:1px solid var(--line-2);
+  box-shadow:0 30px 80px rgba(0,0,0,.65), 0 0 0 8px #0d1117, 0 0 60px rgba(34,211,238,.08);
+}
+.sub .ring{
+  position:absolute;border-radius:50%;border:1px solid rgba(34,211,238,.16);
+}
+.sub .r1{inset:14px}
+.sub .r2{inset:34px;border-color:rgba(34,211,238,.24)}
+.sub .cone{
+  position:absolute;inset:44px;border-radius:50%;
+  background:
+    radial-gradient(circle at 34% 30%, #2e3947 0%, #1d2530 45%, #10151d 80%);
+  box-shadow:0 14px 34px rgba(0,0,0,.6), 0 0 0 6px rgba(10,13,17,.9), 0 0 0 7px rgba(60,76,95,.5);
+  animation:excursion 1.6s cubic-bezier(.45,0,.25,1) infinite;
+}
+.sub .dust{
+  position:absolute;inset:88px;border-radius:50%;
+  background:radial-gradient(circle at 36% 30%, #3a4a5c, #141a22 72%);
+  box-shadow:0 8px 20px rgba(0,0,0,.55), 0 0 22px rgba(34,211,238,.12);
+  animation:excursion 1.6s cubic-bezier(.45,0,.25,1) infinite;
+}
+.sub .glow{
+  position:absolute;inset:-26px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle, rgba(34,211,238,.10) 0%, transparent 62%);
+  animation:blink 1.6s ease-in-out infinite;
+}
+@keyframes excursion{0%,100%{transform:scale(1)}18%{transform:scale(1.045)}46%{transform:scale(.985)}}
+.bars{
+  position:absolute;left:50%;bottom:-38px;transform:translateX(-50%);
+  display:flex;gap:7px;align-items:flex-end;height:34px;
+}
+.bars i{width:7px;border-radius:3px;background:linear-gradient(180deg,var(--accent),rgba(34,211,238,.12));animation:eq 1.15s ease-in-out infinite}
+.bars i:nth-child(1){height:34%;animation-delay:0s}
+.bars i:nth-child(2){height:78%;animation-delay:.12s}
+.bars i:nth-child(3){height:100%;animation-delay:.24s}
+.bars i:nth-child(4){height:62%;animation-delay:.36s}
+.bars i:nth-child(5){height:40%;animation-delay:.48s}
+@keyframes eq{50%{transform:scaleY(.35)}}
+.bars i{transform-origin:bottom}
+
+/* ---------- sections ---------- */
+.section{max-width:var(--maxw);margin:0 auto;padding:56px 20px 8px}
+.sec-head{margin-bottom:26px}
+.sec-head .kicker{font-size:.62rem;padding:6px 12px}
+.sec-head h2{font-size:clamp(1.5rem,6vw,2rem);letter-spacing:-.015em;margin:14px 0 8px}
+.sec-head p{color:var(--txt-1);font-size:.95rem}
+
+/* ---------- demo ---------- */
+.demo-shell{
+  border:1px solid var(--line);border-radius:20px;overflow:hidden;
+  background:linear-gradient(180deg,var(--bg-2),var(--bg-1));
+  box-shadow:0 24px 70px rgba(0,0,0,.45);
+}
+#stage{
+  position:relative;width:100%;aspect-ratio:1/1.06;min-height:320px;
+  background:
+    radial-gradient(600px 320px at 50% 0%, rgba(34,211,238,.06), transparent 60%),
+    var(--bg-0);
+}
+#stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.stage-overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:28px;text-align:center;
+}
+.stage-overlay img{width:64px;height:64px;border-radius:14px;opacity:.9}
+.stage-overlay .t1{font-weight:700;font-size:1.02rem}
+.stage-overlay .t2{color:var(--txt-2);font-size:.8rem;max-width:17rem}
+.progress{width:min(240px,70%);height:5px;border-radius:99px;background:var(--bg-3);overflow:hidden;opacity:0;transition:opacity .3s}
+.progress.on{opacity:1}
+.progress i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,var(--accent-dim),var(--accent));transition:width .2s}
+.status{color:var(--txt-2);font-size:.74rem;font-family:var(--mono)}
+.demo-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:12px 14px;border-top:1px solid var(--line);background:var(--bg-1);
+}
+.demo-bar .chip{
+  display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:0 14px;
+  border-radius:11px;border:1px solid var(--line-2);background:var(--bg-2);
+  color:var(--txt-0);font-weight:600;font-size:.85rem;cursor:pointer;
+}
+.demo-bar .chip:active{background:var(--bg-3)}
+.demo-bar .chip.on{border-color:var(--accent-deep);color:var(--accent);box-shadow:0 0 16px rgba(34,211,238,.14) inset}
+.demo-bar .grow{flex:1}
+.hud{display:flex;gap:14px;font-family:var(--mono);font-size:.78rem;color:var(--txt-2)}
+.hud b{color:var(--accent);font-weight:600}
+
+/* ---------- features ---------- */
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:640px){.grid{grid-template-columns:1fr 1fr}.grid.g3{grid-template-columns:1fr 1fr 1fr}}
+.card{
+  border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px;
+  background:linear-gradient(180deg,var(--bg-2),#0b0f14);
+  transition:border-color .25s, transform .25s;
+}
+.card:active{transform:translateY(1px)}
+.card .ico{
+  width:42px;height:42px;border-radius:12px;display:grid;place-items:center;margin-bottom:14px;
+  background:rgba(14,116,144,.14);border:1px solid var(--accent-deep);color:var(--accent);
+}
+.card h3{font-size:.99rem;margin-bottom:6px;letter-spacing:.01em}
+.card p{color:var(--txt-1);font-size:.85rem}
+.card .tag{display:inline-block;margin-top:12px;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;color:var(--accent-dim);text-transform:uppercase}
+
+/* ---------- physics strip ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-p{
+  font-family:var(--mono);font-size:.76rem;color:var(--txt-0);
+  border:1px solid var(--line-2);background:var(--bg-2);border-radius:10px;padding:9px 12px;
+}
+.chip-p b{color:var(--accent);font-weight:600}
+.modes{margin-top:22px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.mode{display:flex;gap:14px;align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--bg-1)}
+.mode:last-child{border-bottom:none}
+.mode .k{font-family:var(--mono);font-weight:700;color:var(--accent);width:20px;flex:none}
+.mode .n{font-weight:700;font-size:.9rem;min-width:86px}
+.mode .d{color:var(--txt-1);font-size:.82rem}
+.mode .d em{color:var(--txt-2);font-style:normal}
+
+/* ---------- download ---------- */
+.dl{display:grid;gap:14px}
+.dl-card{
+  display:flex;align-items:center;gap:16px;
+  border:1px solid var(--line-2);border-radius:var(--radius);padding:18px;
+  background:linear-gradient(180deg,var(--bg-2),#0b0f14);
+}
+.dl-card .ic{flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:rgba(34,211,238,.1);border:1px solid var(--accent-deep);color:var(--accent)}
+.dl-card .meta{flex:1;min-width:0}
+.dl-card .meta b{display:block;font-size:.95rem}
+.dl-card .meta span{color:var(--txt-2);font-size:.78rem;font-family:var(--mono)}
+.dl-card .go{
+  flex:none;display:flex;align-items:center;justify-content:center;min-width:52px;min-height:44px;
+  border-radius:11px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--accent);font-weight:700;font-size:.85rem;padding:0 14px;
+}
+.callout{
+  margin-top:18px;border:1px solid rgba(250,179,52,.25);background:rgba(250,179,52,.06);
+  border-radius:14px;padding:14px 16px;font-size:.82rem;color:#d8c9a3;
+}
+.callout b{color:#f0b95c}
+.callout code{font-family:var(--mono);font-size:.78rem;color:#efe3c0}
+
+/* ---------- docs links ---------- */
+.doclinks{display:grid;gap:10px}
+.doclink{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--bg-1);
+  color:var(--txt-0);
+}
+.doclink b{font-size:.92rem}
+.doclink span{display:block;color:var(--txt-2);font-size:.78rem;margin-top:2px}
+.doclink .arr{color:var(--accent);font-weight:700}
+
+/* ---------- footer ---------- */
+footer{
+  margin-top:64px;border-top:1px solid var(--line);padding:30px 20px calc(34px + env(safe-area-inset-bottom));
+  text-align:center;color:var(--txt-2);font-size:.78rem;
+  background:linear-gradient(180deg,transparent,rgba(34,211,238,.03));
+}
+footer .fbrand{font-weight:800;letter-spacing:.16em;color:var(--txt-1)}
+footer .fbrand b{color:var(--accent)}
+footer .links{display:flex;gap:18px;justify-content:center;margin:12px 0}
+footer p{max-width:30rem;margin:0 auto;line-height:1.7}
+
+/* ---------- reveal ---------- */
+[data-reveal]{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+[data-reveal].in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  [data-reveal]{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="#top" aria-label="Sonivex Studio home">
+    <span class="mark">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2">
+        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="#22d3ee"/>
+      </svg>
+    </span>
+    SONIVEX<b>STUDIO</b>
+  </a>
+  <div class="nav-links">
+    <a href="#demo">3D</a>
+    <a href="https://github.com/flexyfresh8-prog/sovinex" target="_blank" rel="noopener">GitHub</a>
+    <a href="#download" style="color:var(--accent)">Download</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <span class="kicker"><span class="dot"></span> Professional subwoofer lab · Windows x64</span>
+  <h1>Design. Simulate.<br><span class="grad">Validate.</span></h1>
+  <p class="lede">Import your 15-part subwoofer model, assign every part, play your own music — and watch real electro-acoustic physics drive the cone in real time. A virtual test bench on your desktop.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Download for Windows
+    </a>
+    <a class="btn btn-ghost" href="#demo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+      Launch live 3D preview
+    </a>
+  </div>
+  <p class="hero-note">v1.0.0 · installer + portable · 39/39 unit tests passing</p>
+
+  <div class="sub" aria-hidden="true">
+    <div class="glow"></div>
+    <div class="frame"></div>
+    <div class="ring r1"></div>
+    <div class="ring r2"></div>
+    <div class="cone"></div>
+    <div class="dust"></div>
+    <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+</header>
+
+<section class="section" id="demo">
+  <div class="sec-head" data-reveal>
+    <span class="kicker">Live on this page</span>
+    <h2>Your actual model, in your pocket</h2>
+    <p>This is not a video — it is the real 15-part Tripo model, rendered on your device with the same motion system the desktop app uses. Tap the beat and watch the cone pump.</p>
+  </div>
+  <div class="demo-shell" data-reveal>
+    <div id="stage">
+      <div class="stage-overlay" id="stageOverlay">
+        <img src="assets/icon.png" alt="Sonivex Studio icon">
+        <div class="t1">15-part Tripo subwoofer</div>
+        <div class="t2">Touch to orbit · pinch to zoom · cone driven by a synthesized 36 Hz bass beat</div>
+        <button class="btn btn-primary" id="btnLoad3D" style="min-width:220px">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/></svg>
+          Launch 3D preview · 12 MB
+        </button>
+        <div class="progress" id="prog"><i id="progFill"></i></div>
+        <div class="status" id="stageStatus">runs locally · three.js fetched once from CDN</div>
+      </div>
+    </div>
+    <div class="demo-bar" id="demoBar" hidden>
+      <button class="chip" id="btnBeat">
+        <svg id="icoPlay" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        Beat
+      </button>
+      <button class="chip on" id="btnMute">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        Sound
+      </button>
+      <button class="chip" id="btnReset">Reset view</button>
+      <span class="grow"></span>
+      <div class="hud">
+        <span>excursion <b id="hudX">0.0</b> mm</span>
+        <span><b id="hudHz">36</b> Hz</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="sec-head" data-reveal>
+    <span class="kicker">Inside the app</span>
+    <h2>A complete virtual subwoofer lab</h2>
+    <p>Sonivex Studio is a native Windows application — no browser, no cloud. Everything computes locally on your machine.</p>
+  </div>
+  <div class="grid" data-reveal>
+    <div class="card">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg></div>
+      <h3>15-part model import</h3>
+      <p>GLB · GLTF · OBJ · FBX. Every mesh stays an individual part — nothing merged, nothing deleted. Part #3 is auto-assigned as the cone; all roles are editable.</p>
+      <span class="tag">Import</span>
+    </div>
+    <div class="card">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg></div>
+      <h3>Real part customization</h3>
+      <p>Change cone diameter, surround width, magnet stack, box volume, port geometry — the 3D assembly regenerates live and every physics number recomputes instantly.</p>
+      <span class="tag">Design</span>
+    </div>
+    <div class="card">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+      <h3>Play your own MP3s</h3>
+      <p>MP3 · WAV · FLAC · OGG with full transport, waveform and live spectrum. Four synthesized test signals are built in too — no assets needed.</p>
+      <span class="tag">Audio</span>
+    </div>
+    <div class="card">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6"/></svg></div>
+      <h3>Physics, not fake wiggles</h3>
+      <p>Your Thiele/Small parameters + enclosure are solved as a lumped electro-mechanical model. The track is filtered through the excursion transfer function — a signed displacement waveform.</p>
+      <span class="tag">Simulation</span>
+    </div>
+    <div class="card">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20v-4M18 20V10"/><rect x="2" y="2" width="20" height="20" rx="3"/></svg></div>
+      <h3>Xmax &amp; chuffing gauges</h3>
+      <p>Live excursion gauge with Xmax limit, cone velocity and acceleration, SPL estimate, port air velocity against the 17 m/s chuffing threshold. Bottoming-out risk per track.</p>
+      <span class="tag">Validate</span>
+    </div>
+    <div class="card">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg></div>
+      <h3>Projects &amp; reports</h3>
+      <p>Versioned <span class="mono">.svx</span> projects with autosave and crash recovery. Export curve data to CSV or a formatted PDF engineering report.</p>
+      <span class="tag">Workflow</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="physics">
+  <div class="sec-head" data-reveal>
+    <span class="kicker">Under the hood</span>
+    <h2>Every formula, documented</h2>
+    <p>Sonivex never fakes a number. Visualization, estimation and measurement are clearly separated — and each formula is written down.</p>
+  </div>
+  <div class="chips" data-reveal>
+    <span class="chip-p"><b>Fs</b> resonance</span>
+    <span class="chip-p"><b>Qes / Qms / Qts</b> Q-factors</span>
+    <span class="chip-p"><b>Vas</b> compliance vol.</span>
+    <span class="chip-p"><b>Re / Le</b> voice coil</span>
+    <span class="chip-p"><b>Sd</b> piston area</span>
+    <span class="chip-p"><b>Xmax</b> linear excursion</span>
+    <span class="chip-p"><b>Bl</b> force factor</span>
+    <span class="chip-p"><b>Mms / Cms</b> moving system</span>
+    <span class="chip-p"><b>Fb</b> port tuning</span>
+    <span class="chip-p"><b>F3</b> −3 dB point</span>
+  </div>
+  <div class="modes" data-reveal>
+    <div class="mode"><span class="k">A</span><span class="n">Waveform</span><span class="d">Signed low-band reconstruction — cone oscillates in and out. <em>Visualization.</em></span></div>
+    <div class="mode"><span class="k">B</span><span class="n">Envelope</span><span class="d">Asymmetric bass envelope, push-out only. <em>Visualization.</em></span></div>
+    <div class="mode"><span class="k">C</span><span class="n">Band</span><span class="d">Level of a frequency band you pick, 20–250 Hz. <em>Visualization.</em></span></div>
+    <div class="mode"><span class="k">D</span><span class="n">Physics</span><span class="d">Excursion through the full driver + box transfer model. <em>Default mode.</em></span></div>
+  </div>
+</section>
+
+<section class="section" id="download">
+  <div class="sec-head" data-reveal>
+    <span class="kicker">Get the app</span>
+    <h2>Windows x64 · free · no telemetry</h2>
+    <p>Both builds are produced by this repository's own CI pipeline, with published SHA-256 checksums.</p>
+  </div>
+  <div class="dl" data-reveal>
+    <a class="dl-card" href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">
+      <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
+      <span class="meta"><b>Sonivex-Studio-Setup-1.0.0.exe</b><span>installer · shortcuts · uninstaller · .svx association</span></span>
+      <span class="go">GET</span>
+    </a>
+    <a class="dl-card" href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">
+      <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg></span>
+      <span class="meta"><b>Sonivex-Studio-Portable-1.0.0.exe</b><span>single file · runs from USB · no installation</span></span>
+      <span class="go">GET</span>
+    </a>
+  </div>
+  <div class="callout" data-reveal>
+    <b>SmartScreen notice.</b> The binaries are unsigned, so Windows may say <b>"Windows protected your PC"</b>. Click <b>More info → Run anyway</b>. Verify the file first against the published <code>checksums-sha256.txt</code>.
+  </div>
+  <p style="margin-top:14px;color:var(--txt-2);font-size:.78rem" data-reveal>Requirements: Windows 10/11 x64 · integrated GPUs fully supported · ~400 MB disk · audio output device.</p>
+</section>
+
+<section class="section" id="docs">
+  <div class="sec-head" data-reveal>
+    <span class="kicker">Read the engineering</span>
+    <h2>Documentation</h2>
+  </div>
+  <div class="doclinks" data-reveal>
+    <a class="doclink" href="https://github.com/flexyfresh8-prog/sovinex/blob/main/docs/PHYSICS.md" target="_blank" rel="noopener">
+      <span><b>PHYSICS.md</b><span>every formula used, with assumptions</span></span><span class="arr">→</span>
+    </a>
+    <a class="doclink" href="https://github.com/flexyfresh8-prog/sovinex/blob/main/docs/LIMITATIONS.md" target="_blank" rel="noopener">
+      <span><b>LIMITATIONS.md</b><span>what the estimates can and cannot tell you</span></span><span class="arr">→</span>
+    </a>
+    <a class="doclink" href="https://github.com/flexyfresh8-prog/sovinex/blob/main/docs/ACCEPTANCE.md" target="_blank" rel="noopener">
+      <span><b>ACCEPTANCE.md</b><span>acceptance test checklist</span></span><span class="arr">→</span>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="fbrand">SONIVEX<b>STUDIO</b></div>
+  <div class="links">
+    <a href="https://github.com/flexyfresh8-prog/sovinex" target="_blank" rel="noopener">Repository</a>
+    <a href="https://github.com/flexyfresh8-prog/sovinex/actions" target="_blank" rel="noopener">CI builds</a>
+    <a href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">Releases</a>
+  </div>
+  <p>Built with Electron · React · TypeScript · Three.js. Physics are honest estimates from published electro-acoustic models — clearly labeled, never fabricated.</p>
+  <p style="margin-top:10px">© 2026 Sonivex Engineering · MIT License</p>
+</footer>
+
+<script>
+  // Scroll reveal
+  const io = new IntersectionObserver((es) => {
+    es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+  document.getElementById('btnLoad3D').addEventListener('click', () => {
+    import('./demo.js').then((m) => m.launchDemo()).catch((err) => {
+      const st = document.getElementById('stageStatus');
+      st.textContent = 'Could not load preview — Three.js CDN unreachable. Check connection and retry.';
+      console.error(err);
+    });
+  }, { once: true });
+</script>
+</body>
+</html>

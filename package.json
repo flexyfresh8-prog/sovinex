@@ -1,0 +1,39 @@
+{
+  "name": "sonivex-studio",
+  "productName": "Sonivex Studio",
+  "version": "1.0.0",
+  "description": "Sonivex Studio - Professional subwoofer design, audio visualization and virtual test bench. Design. Simulate. Validate.",
+  "main": "dist-electron/main.js",
+  "author": "Sonivex Engineering",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "vite build && node scripts/build-main.mjs",
+    "dist": "npm run build && node scripts/dist-win.mjs",
+    "dist:dir": "npm run build && electron-builder --win --x64 --dir",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.main.json",
+    "predist": "python scripts/patch-nsis-templates.py || python3 scripts/patch-nsis-templates.py",
+    "dist:cli": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.169.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.2",
+    "js-yaml": "^5.5.0",
+    "pe-library": "^2.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "resedit": "^3.1.0",
+    "three": "^0.169.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8",
+    "zustand": "^4.5.5"
+  }
+}

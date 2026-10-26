@@ -1,0 +1,72 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Windows x64 (NSIS + Portable)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (physics / FFT / schema)
+        run: npm test
+
+      - name: Build renderer + main
+        run: npm run build
+
+      - name: Patch NSIS templates (wine-free uninstaller flow)
+        shell: bash
+        run: |
+          python scripts/patch-nsis-templates.py || python3 scripts/patch-nsis-templates.py
+
+      - name: Package (electron-builder -> NSIS + Portable)
+        run: node scripts/dist-win.mjs
+
+      - name: Compute SHA-256 checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release/*.exe | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$h  $($_.Name)"
+          } | Out-File -FilePath release/checksums-sha256.txt -Encoding ascii
+          Get-Content release/checksums-sha256.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonivex-Studio-Windows-x64
+          path: |
+            release/*.exe
+            release/checksums-sha256.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach to GitHub Release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+            release/checksums-sha256.txt
+          fail_on_unmatched_files: true
