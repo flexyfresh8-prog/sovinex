@@ -1,7 +1,7 @@
 /**
  * Sonivex Studio — mobile GitHub Pages 3D preview.
  * Loads the real 15-part Tripo GLB, applies studio fallback materials,
- * and drives the cone (part #3 = tripo_part_2, driver axis X) with a
+ * and drives the cone (tripo_part_3, driver axis X) with a
  * synthesized bass beat through a first-order excursion envelope.
  * Simplified visualization of the desktop app's motion system.
  */
