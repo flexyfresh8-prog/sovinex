@@ -7,7 +7,10 @@
  */
 
 const MODEL_URL = 'assets/models/loudspeaker.glb';
-const CONE_NAME = 'tripo_part_2';
+// Geometry-verified: tripo_part_3 is the cone dish (spans the full radius to the
+// axis). tripo_part_2 is the thin surround ring around it — never animated.
+const CONE_NAME = 'tripo_part_3';
+const CONE_FALLBACK_INDEX = 3;
 const CARRIER_HZ = 36;
 const BPM = 120;
 const PATTERN = [1, 0, 0.5, 0, 1, 0, 0.55, 0.3]; // eighth-note velocity map
@@ -134,7 +137,10 @@ export async function launchDemo() {
   scene.add(root);
 
   // cone part — driver axis is X (verified in app inspection)
-  let cone = meshes.find((m) => m.name === CONE_NAME) || meshes[2] || null;
+  let cone = meshes.find((m) => m.name === CONE_NAME)
+    || meshes[CONE_FALLBACK_INDEX]
+    || meshes.find((m) => /cone/i.test(m.name))
+    || null;
   let restX = 0, amp = 0.1;
   if (cone) {
     cone.updateWorldMatrix(true, false);

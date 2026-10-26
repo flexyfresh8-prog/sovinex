@@ -103,18 +103,32 @@ describe('auto-classification on the real Tripo model', () => {
     result.forEach((r) => expect(['static', 'moving', 'deformable', 'unknown']).toContain(r.role));
   });
 
-  it('identifies the enclosure (largest, box-like) as static', () => {
+  it('classifies the basket (largest, tabbed dish) as static frame', () => {
     const result = autoClassify(tripoMetrics);
-    expect(result[0].suggestedName).toBe('Enclosure');
     expect(result[0].role).toBe('static');
+    expect(result[0].suggestedName).toBe('Basket / Frame');
   });
 
-  it('applies user knowledge: part #3 (index 2) is the cone', () => {
+  it('classifies the surround ring (index 2) as deformable, never the cone', () => {
+    const result = autoClassify(tripoMetrics);
+    expect(result[2].suggestedName).toBe('Surround Ring');
+    expect(result[2].role).toBe('deformable');
+  });
+
+  it('geometrically identifies the cone dish at index 3 (tripo_part_3)', () => {
+    const result = autoClassify(tripoMetrics);
+    expect(result[3].suggestedName).toBe('Cone');
+    expect(result[3].role).toBe('moving');
+  });
+
+  it('applies user knowledge: cone = tripo_part_3 (index 3), surround = index 2', () => {
     let result = autoClassify(tripoMetrics);
     result = applyKnownTripoLayout(tripoMetrics, result);
-    expect(result[2].role).toBe('moving');
-    expect(result[2].suggestedName).toBe('Cone');
-    expect(result[2].confidence).toBe(1.0);
+    expect(result[3].role).toBe('moving');
+    expect(result[3].suggestedName).toBe('Cone');
+    expect(result[3].confidence).toBe(1.0);
+    expect(result[2].role).toBe('deformable');
+    expect(result[2].suggestedName).toBe('Surround Ring');
   });
 
   it('never leaves everything moving (rest protection by default)', () => {
@@ -123,5 +137,12 @@ describe('auto-classification on the real Tripo model', () => {
     const moving = result.filter((r) => r.role === 'moving');
     expect(moving.length).toBeLessThan(15);
     expect(result[0].role).toBe('static');
+  });
+
+  it('reclassifies a deep annulus candidate away from the cone (motor cap)', () => {
+    // index 4: dish metrics but sits far behind the cone (motor back cap)
+    const result = autoClassify(tripoMetrics);
+    expect(result[4].suggestedName).toBe('Motor Element');
+    expect(result[4].role).toBe('static');
   });
 });

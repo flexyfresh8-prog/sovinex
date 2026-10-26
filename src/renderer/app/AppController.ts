@@ -79,7 +79,7 @@ export class AppController {
 
     const info = await bridge().appInfo();
     store.getState().log('ok', `Sonivex Studio ${info.version} ready — Design. Simulate. Validate.`);
-    store.getState().log('info', 'Tip: import your Tripo model via Model → Import 3D Model (15 parts auto-detected, part #3 = cone).');
+    store.getState().log('info', 'Tip: import your Tripo model via Model → Import 3D Model (15 parts preserved; the cone is identified by geometry).');
   }
 
   // ================= assembly management =================
@@ -139,9 +139,17 @@ export class AppController {
   }
 
   private syncRolesToDefaults(): void {
-    // defaults for both procedural + Tripo layouts: p2 = cone (moving), p3 = cap (moving), p5 = surround (deformable)
+    // Fallback for parts still marked 'unknown'. Procedural layout: p2 = cone (moving),
+    // p3 = cap (moving), p5 = surround (deformable). Tripo 15-part layout (geometry-verified):
+    // p3 = cone (moving), p2 = surround (deformable), p4 = motor cap (static).
     const parts = store.getState().project.parts;
+    const isTripo = parts.length === 15 && parts.some((p) => /^tripo_part_\d+$/.test(p.sourceName));
     const roleFor = (id: string): PartInfo['role'] => {
+      if (isTripo) {
+        if (id === 'p3') return 'moving';
+        if (id === 'p2') return 'deformable';
+        return 'static';
+      }
       if (id === 'p2') return 'moving';
       if (id === 'p3') return 'moving';
       if (id === 'p5') return 'deformable';
@@ -225,7 +233,7 @@ export class AppController {
       this.viewport.fitToModel();
       const movingCount = moving.length;
       store.getState().log('ok', `Imported ${parts.length} parts — ${movingCount} classified as moving, ${parts.length - movingCount} static. Verify roles in the Parts panel.`);
-      if (parts.length === 15) store.getState().log('ok', 'All 15 parts detected and preserved. Part #3 pre-assigned as Cone per your specification.');
+      if (parts.length === 15) store.getState().log('ok', `All 15 parts detected and preserved. Cone identified by geometry (${projParts[3]?.sourceName ?? 'part index 3'}); its surround ring stays static except for flex.`);
     } catch (e) {
       store.getState().log('error', `Import failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
