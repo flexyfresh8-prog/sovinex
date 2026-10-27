@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "build": "vite build && node scripts/build-main.mjs",
-    "build:docs-engine": "esbuild src/renderer/three/driverStudio/docsEntry.ts --bundle --format=esm --target=es2020 --minify --external:three --outfile=docs/driver-model.js",
+    "build:docs-engine": "esbuild src/renderer/three/driverStudio/docsEntry.ts --bundle --format=esm --target=es2020 --minify --alias:three/examples/jsm=three/addons --external:three --outfile=docs/driver-model.js",
     "dist": "npm run build && node scripts/dist-win.mjs",
     "dist:dir": "npm run build && electron-builder --win --x64 --dir",
     "test": "vitest run",

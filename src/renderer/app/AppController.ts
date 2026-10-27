@@ -179,14 +179,14 @@ export class AppController {
     const g = new THREE.Group();
     g.name = 'DisplayStand';
     const mat = new THREE.MeshStandardMaterial({ color: 0x131313, roughness: 0.55, metalness: 0.35 });
-    const cradle = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.014, 12, 64).rotateX(Math.PI / 2), mat);
+    const cradle = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.009, 12, 64).rotateX(Math.PI / 2), mat);
     cradle.name = 'stand_cradle';
-    cradle.position.z = -0.075;
+    cradle.position.z = -0.125;
     cradle.rotation.x = Math.PI / 2 - 0.0;
     g.add(cradle);
-    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.11, 0.34, 32), mat);
+    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.1, 0.34, 32), mat);
     pedestal.name = 'stand_pedestal';
-    pedestal.position.y = -0.24;
+    pedestal.position.y = -0.25;
     pedestal.castShadow = true;
     g.add(pedestal);
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.16, 0.022, 48), mat);

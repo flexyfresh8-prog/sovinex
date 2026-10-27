@@ -467,18 +467,18 @@ function buildBasket(d: Datums, cfg: DriverStudioConfig): PartBuild {
   meshes.push(rearLip);
   g.add(rearLip);
 
-  // 5) spokes: rounded bridges across the windows, following the frame slope
+  // 5) spokes: rounded bridges across the windows, connecting flange → rear ring
   const spokeW = Math.max(2 * MM, cfg.spokeWidthMM * MM);
-  const rMid = (flangeIn + rearR) / 2;
   for (let i = 0; i < winCount; i++) {
     const a = pitch * i;
-    const len = Math.hypot(flangeIn - rearR, (flangeT - (zRear + t))) * 1.02;
+    // exact endpoints on the flange ring and the rear ring, oriented by quaternion
+    const pTop = new THREE.Vector3(Math.cos(a) * flangeIn, Math.sin(a) * flangeIn, flangeT - t * 0.4);
+    const pBot = new THREE.Vector3(Math.cos(a) * (rearR - t * 0.2), Math.sin(a) * (rearR - t * 0.2), zRear + t);
+    const dir = pBot.clone().sub(pTop);
+    const len = dir.length();
     const spoke = mesh(new RoundedBoxGeometry(spokeW, t * 1.25, len, 2, Math.min(spokeW, t) * 0.3), mat, `basket_spoke_${i}`);
-    spoke.position.set(Math.cos(a) * rMid, Math.sin(a) * rMid, (flangeT + zRear) / 2 - 0.4 * MM);
-    spoke.rotation.z = a + Math.PI / 2;
-    // slope the spoke to connect flange → rear ring
-    spoke.rotation.y = Math.atan2(rearR - flangeIn, flangeT - (zRear + t));
-    spoke.rotateX(Math.PI / 2);
+    spoke.position.copy(pTop).add(pBot).multiplyScalar(0.5);
+    spoke.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir.normalize());
     meshes.push(spoke);
     g.add(spoke);
   }

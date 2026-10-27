@@ -39,6 +39,7 @@ export async function launchDemo() {
 
   setStatus('loading three.js from CDN …');
   const THREE = await import('three');
+  const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
   setProg(0.35);
 
   // ---- renderer / scene (strict monochrome) ----
@@ -47,7 +48,7 @@ export async function launchDemo() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.18;
   stage.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -56,7 +57,12 @@ export async function launchDemo() {
 
   const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 20);
 
-  scene.add(new THREE.HemisphereLight(0xe8e8e8, 0x0a0a0a, 0.75));
+  // studio environment for correct PBR metal reflections (as the desktop app)
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+
+  scene.add(new THREE.HemisphereLight(0xe8e8e8, 0x0a0a0a, 0.6));
   const key = new THREE.DirectionalLight(0xffffff, 2.2);
   key.position.set(1.6, 2.2, 1.6);
   scene.add(key);
@@ -80,14 +86,14 @@ export async function launchDemo() {
 
   // display stand (same as the desktop Driver Only view)
   const standMat = new THREE.MeshStandardMaterial({ color: 0x131313, roughness: 0.55, metalness: 0.35 });
-  const cradle = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.013, 12, 64), standMat);
+  const cradle = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.009, 12, 64), standMat);
   cradle.rotation.x = Math.PI / 2;
-  cradle.position.z = -0.08;
-  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.11, 0.3, 32), standMat);
-  pedestal.position.y = -0.2;
+  cradle.position.z = -0.125;
+  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.1, 0.3, 32), standMat);
+  pedestal.position.y = -0.21;
   pedestal.castShadow = true;
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.16, 0.02, 48), standMat);
-  base.position.y = -0.36;
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.02, 48), standMat);
+  base.position.y = -0.37;
   scene.add(cradle, pedestal, base);
 
   // ---- motion: identical attachment contract to the desktop app ----
@@ -108,13 +114,13 @@ export async function launchDemo() {
   const applyExplode = (f) => {
     studio.applyExplode(f);
     const offsets = new Map();
-    studio.components.forEach((c) => offsets.set(c.object, c.explodeOffset.clone().multiplyScalar(f)));
+    studio.components.forEach((c) => offsets.set(c.object, c.explodeOffset.clone().multiplyScalar(f * 1.7)));
     motion.setPartOffsets(offsets);
   };
 
   // ---- camera orbit (touch + mouse) ----
-  const target = new THREE.Vector3(0, 0, -0.03);
-  const cam = { radius: 0.72, theta: 0.85, phi: 1.25 };
+  const target = new THREE.Vector3(0, 0, -0.05);
+  const cam = { radius: 0.95, theta: 0.85, phi: 1.22 };
   const camHome = { ...cam };
   let interacting = false;
   const applyCam = () => {
@@ -145,7 +151,7 @@ export async function launchDemo() {
   el.addEventListener('pointercancel', onUp);
   el.addEventListener('wheel', (e) => {
     e.preventDefault(); interacting = true;
-    cam.radius = Math.min(1.8, Math.max(0.34, cam.radius * (1 + Math.sign(e.deltaY) * 0.09)));
+    cam.radius = Math.min(2.2, Math.max(0.45, cam.radius * (1 + Math.sign(e.deltaY) * 0.09)));
     applyCam();
   }, { passive: false });
   el.addEventListener('touchmove', (e) => {
@@ -153,7 +159,7 @@ export async function launchDemo() {
       e.preventDefault(); interacting = true;
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       if (pinchD) {
-        cam.radius = Math.min(1.8, Math.max(0.34, cam.radius * (pinchD / d)));
+        cam.radius = Math.min(2.2, Math.max(0.45, cam.radius * (pinchD / d)));
         applyCam();
       }
       pinchD = d;

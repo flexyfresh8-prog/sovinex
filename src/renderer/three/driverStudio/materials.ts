@@ -83,19 +83,24 @@ export function studioMaterial(
     ? ({ paper: tex.paper, rubber: tex.rubber, brushed: tex.brushed, weave: tex.weave, micro: tex.micro }[spec.normal] ?? null)
     : null;
 
-  const mat = new THREE.MeshPhysicalMaterial({
+  const params: THREE.MeshPhysicalMaterialParameters = {
     color: new THREE.Color(colorOverride ? color : spec.color),
     roughness: THREE.MathUtils.clamp(spec.roughness + fin.rough, 0.04, 1),
     metalness: spec.metalness,
     clearcoat: Math.max(0, (spec.clearcoat ?? 0) + fin.cc),
     clearcoatRoughness: spec.clearcoatRoughness ?? 0.3,
-    sheen: spec.sheen ?? 0,
-    sheenColor: spec.sheen ? new THREE.Color(spec.sheenColor!) : undefined,
-    normalMap: normalMap ?? undefined,
-    normalScale: normalMap ? new THREE.Vector2(spec.normalScale ?? 0.4, spec.normalScale ?? 0.4) : undefined,
     envMapIntensity: spec.envMapIntensity ?? 0.9,
     side: spec.side ?? THREE.FrontSide,
-  });
+  };
+  if (spec.sheen) {
+    params.sheen = spec.sheen;
+    params.sheenColor = new THREE.Color(spec.sheenColor ?? 0x2c2c2c);
+  }
+  if (normalMap) {
+    params.normalMap = normalMap;
+    params.normalScale = new THREE.Vector2(spec.normalScale ?? 0.4, spec.normalScale ?? 0.4);
+  }
+  const mat = new THREE.MeshPhysicalMaterial(params);
   // clearcoat only costs when present; keep param explicit for shader cache
   if (!(spec.clearcoat ?? 0) && fin.cc <= 0) mat.clearcoat = 0;
   mat.userData.preset = preset;
