@@ -91,9 +91,9 @@ export function studioMaterialFor(partName: string, index: number): THREE.MeshPh
   const lower = partName.toLowerCase();
   if (lower.includes('cone')) {
     return new THREE.MeshPhysicalMaterial({
-      color: '#15181d', roughness: 0.62, metalness: 0.08,
+      color: '#1A1A1A', roughness: 0.62, metalness: 0.08,
       normalMap: tex.weave!, normalScale: new THREE.Vector2(0.55, 0.55), envMapIntensity: 0.85,
-      sheen: 0.25, sheenColor: new THREE.Color('#2a3038'),
+      sheen: 0.25, sheenColor: new THREE.Color('#2B2B2B'),
     });
   }
   if (lower.includes('surround') || lower.includes('ring')) {
@@ -104,31 +104,31 @@ export function studioMaterialFor(partName: string, index: number): THREE.MeshPh
   }
   if (lower.includes('cap') || lower.includes('dome')) {
     return new THREE.MeshPhysicalMaterial({
-      color: '#1a1e25', roughness: 0.16, metalness: 0.25,
+      color: '#1C1C1C', roughness: 0.16, metalness: 0.25,
       clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 1.3,
     });
   }
   if (lower.includes('enclosure') || lower.includes('cabinet')) {
     return new THREE.MeshPhysicalMaterial({
-      color: '#0e1116', roughness: 0.4, metalness: 0.12,
+      color: '#0F0F0F', roughness: 0.4, metalness: 0.12,
       clearcoat: 0.8, clearcoatRoughness: 0.24,
       normalMap: tex.micro!, normalScale: new THREE.Vector2(0.2, 0.2),
     });
   }
   if (lower.includes('magnet') || lower.includes('motor') || lower.includes('basket')) {
     return new THREE.MeshPhysicalMaterial({
-      color: '#3b4048', roughness: 0.35, metalness: 0.9,
+      color: '#3D3D3D', roughness: 0.35, metalness: 0.9,
       normalMap: tex.brushed!, normalScale: new THREE.Vector2(0.35, 0.35),
     });
   }
   if (index % 3 === 0) {
     return new THREE.MeshPhysicalMaterial({
-      color: '#101318', roughness: 0.5, metalness: 0.4,
+      color: '#111111', roughness: 0.5, metalness: 0.4,
       normalMap: tex.micro!, normalScale: new THREE.Vector2(0.25, 0.25),
     });
   }
   return new THREE.MeshPhysicalMaterial({
-    color: '#2a2f37', roughness: 0.45, metalness: 0.55,
+    color: '#2C2C2C', roughness: 0.45, metalness: 0.55,
     normalMap: tex.brushed!, normalScale: new THREE.Vector2(0.25, 0.25),
   });
 }

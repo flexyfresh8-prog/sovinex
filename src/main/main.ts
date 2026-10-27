@@ -221,7 +221,7 @@ function createWindow(): void {
     width: 1600, height: 960,
     minWidth: 1280, minHeight: 800,
     show: false,
-    backgroundColor: '#0a0c10',
+    backgroundColor: '#0A0A0A',
     title: 'Sonivex Studio',
     autoHideMenuBar: true,
     ...(fs.existsSync(iconPath) ? { icon: iconPath } : {}),

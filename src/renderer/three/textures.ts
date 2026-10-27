@@ -109,9 +109,9 @@ export function rubberBumpMap(size = 256): THREE.CanvasTexture {
 export function groundTexture(): THREE.CanvasTexture {
   const [c, ctx] = makeCanvas(512);
   const g = ctx.createRadialGradient(256, 256, 40, 256, 256, 256);
-  g.addColorStop(0, 'rgba(30,36,44,0.95)');
-  g.addColorStop(0.55, 'rgba(16,19,24,0.85)');
-  g.addColorStop(1, 'rgba(10,12,16,0)');
+  g.addColorStop(0, 'rgba(28,28,28,0.95)');
+  g.addColorStop(0.55, 'rgba(15,15,15,0.85)');
+  g.addColorStop(1, 'rgba(10,10,10,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 512, 512);
   const t = new THREE.CanvasTexture(c);

@@ -1,5 +1,7 @@
 # Sonivex Studio
 
+**v1.1.0 — Black & White Edition.** Pure monochrome UI, pure monochrome materials, and a fully procedural ultra-detail 15-part reference subwoofer built in code (no bundled GLB). Import pipeline still accepts GLB/GLTF/OBJ/FBX.
+
 **Design. Simulate. Validate.**
 
 Professional desktop software for subwoofer design, audio-driven visualization and virtual testing. Import your Tripo AI model, assign parts, play your music and watch the physics — excursion, SPL, port velocity, Xmax usage — computed in real time from real electro-acoustic models.
@@ -18,8 +20,8 @@ Grab the latest build from **[Releases](https://github.com/flexyfresh8-prog/sovi
 
 | File | Purpose |
 |------|---------|
-| `Sonivex-Studio-Setup-1.0.2.exe` | Standard installer (Start Menu + Desktop shortcuts, uninstaller, `.svx` file association) |
-| `Sonivex-Studio-Portable-1.0.2.exe` | Portable single-file build — run from anywhere, no installation |
+| `Sonivex-Studio-Setup-1.1.0.exe` | Standard installer (Start Menu + Desktop shortcuts, uninstaller, `.svx` file association) |
+| `Sonivex-Studio-Portable-1.1.0.exe` | Portable single-file build — run from anywhere, no installation |
 | `checksums-sha256.txt` | SHA-256 checksums for both executables |
 
 Every push to `main` also produces downloadable build artifacts on the [Actions page](https://github.com/flexyfresh8-prog/sovinex/actions?query=branch%3Amain).
@@ -97,7 +99,7 @@ Frequency-response plots (SPL, excursion vs Xmax, impedance with ported double-h
 ```bash
 npm install
 npm test          # 39 unit tests (physics, FFT/analysis, schema)
-npm run dist      # → release/Sonivex-Studio-Setup-1.0.2.exe + Portable
+npm run dist      # → release/Sonivex-Studio-Setup-1.1.0.exe + Portable
 ```
 
 Requirements: Node.js 20+, Python (only for the NSIS template patcher). Windows builds work **on Linux/macOS hosts without wine** — see `scripts/patch-nsis-templates.py` (installs the uninstaller at install time via `WriteUninstaller`) and `scripts/patch-win-exe.mjs` (pure-JS icon/version embedding via `resedit`). CI runs the same pipeline natively on `windows-latest` (`.github/workflows/build-windows.yml`) on every push and attaches installers to GitHub Releases on version tags.

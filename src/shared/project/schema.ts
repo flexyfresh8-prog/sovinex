@@ -26,8 +26,8 @@ export function defaultDriver() {
     magnetDiameterCM: 14.6,
     magnetHeightCM: 3.8,
     vcDiameterCM: 5.1,
-    coneColor: '#15181d',
-    basketColor: '#2a2e35',
+    coneColor: '#1A1A1A',
+    basketColor: '#2C2C2C',
     coneMaterial: 'composite' as const,
   };
 }

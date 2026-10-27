@@ -68,8 +68,8 @@ export class Viewport {
     container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color('#0a0c10');
-    this.scene.fog = new THREE.Fog('#0a0c10', 6, 18);
+    this.scene.background = new THREE.Color('#0A0A0A');
+    this.scene.fog = new THREE.Fog('#0A0A0A', 6, 18);
 
     const aspect = container.clientWidth / Math.max(container.clientHeight, 1);
     this.camera = new THREE.PerspectiveCamera(38, aspect, 0.02, 60);
@@ -94,7 +94,7 @@ export class Viewport {
     pmrem.dispose();
 
     // lights
-    const key = new THREE.DirectionalLight('#eaf2ff', 2.6);
+    const key = new THREE.DirectionalLight('#FFFFFF', 2.6);
     key.position.set(2.6, 4.2, 2.2);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -105,15 +105,15 @@ export class Viewport {
     key.shadow.radius = 5;
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight('#8fb6ff', 0.55);
+    const fill = new THREE.DirectionalLight('#CCCCCC', 0.55);
     fill.position.set(-3, 1.6, -2.4);
     this.scene.add(fill);
 
-    const rim = new THREE.SpotLight('#22d3ee', 22, 9, 0.7, 0.55, 1.6);
+    const rim = new THREE.SpotLight('#FFFFFF', 13, 9, 0.7, 0.55, 1.6);
     rim.position.set(-2.2, 2.4, -2.8);
     this.scene.add(rim);
 
-    const rim2 = new THREE.SpotLight('#3b82f6', 14, 9, 0.8, 0.6, 1.8);
+    const rim2 = new THREE.SpotLight('#A8A8A8', 8, 9, 0.8, 0.6, 1.8);
     rim2.position.set(2.4, 1.2, -3.0);
     this.scene.add(rim2);
 
@@ -135,7 +135,7 @@ export class Viewport {
 
     // grid: rings + axes, engineering look
     this.grid = new THREE.Group();
-    const gridMat = new THREE.LineBasicMaterial({ color: '#1d4f5a', transparent: true, opacity: 0.5 });
+    const gridMat = new THREE.LineBasicMaterial({ color: '#303030', transparent: true, opacity: 0.5 });
     for (let r = 0.5; r <= 2.5; r += 0.5) {
       const pts: THREE.Vector3[] = [];
       for (let i = 0; i <= 96; i++) {
@@ -144,11 +144,11 @@ export class Viewport {
       }
       this.grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
     }
-    const axisMatX = new THREE.LineBasicMaterial({ color: '#3b82f6', transparent: true, opacity: 0.65 });
-    const axisMatZ = new THREE.LineBasicMaterial({ color: '#22d3ee', transparent: true, opacity: 0.65 });
+    const axisMatX = new THREE.LineBasicMaterial({ color: '#6e6e6e', transparent: true, opacity: 0.65 });
+    const axisMatZ = new THREE.LineBasicMaterial({ color: '#e0e0e0', transparent: true, opacity: 0.65 });
     this.grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2.6, 0, 0), new THREE.Vector3(2.6, 0, 0)]), axisMatX));
     this.grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -2.6), new THREE.Vector3(0, 0, 2.6)]), axisMatZ));
-    const vertAxis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.4, 0)]), new THREE.LineBasicMaterial({ color: '#2a3442', transparent: true, opacity: 0.5 }));
+    const vertAxis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.4, 0)]), new THREE.LineBasicMaterial({ color: '#2C2C2C', transparent: true, opacity: 0.5 }));
     this.grid.add(vertAxis);
     this.scene.add(this.grid);
 
@@ -287,7 +287,7 @@ export class Viewport {
           const mesh = child as THREE.Mesh;
           const edges = new THREE.LineSegments(
             new THREE.EdgesGeometry(mesh.geometry, 24),
-            new THREE.LineBasicMaterial({ color: '#22d3ee', transparent: true, opacity: 0.95 }),
+            new THREE.LineBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.95 }),
           );
           edges.raycast = () => { /* no pick */ };
           mesh.add(edges);
@@ -298,8 +298,8 @@ export class Viewport {
       obj.traverse((child) => {
         const mesh = child as THREE.Mesh;
         if (mesh.isMesh && (mesh.material as THREE.MeshStandardMaterial).emissive) {
-          (mesh.material as THREE.MeshStandardMaterial).emissive.set('#0e7490');
-          (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.16;
+          (mesh.material as THREE.MeshStandardMaterial).emissive.set('#8A8A8A');
+          (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.12;
         }
       });
     });
@@ -361,7 +361,7 @@ export class Viewport {
         obj?.traverse((child) => {
           const mesh = child as THREE.Mesh;
           if (mesh.isMesh && (mesh.material as THREE.MeshStandardMaterial).emissive) {
-            (mesh.material as THREE.MeshStandardMaterial).emissive.set('#155e75');
+            (mesh.material as THREE.MeshStandardMaterial).emissive.set('#4A4A4A');
             (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.1;
           }
         });

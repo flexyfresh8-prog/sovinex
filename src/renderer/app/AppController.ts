@@ -692,11 +692,11 @@ export class AppController {
     const warn = (summary?.warnings ?? []).map((w) => `<li>${w}</li>`).join('') || '<li>No warnings.</li>';
     const html = `<!doctype html><html><head><meta charset="utf-8"><style>
       body{font-family:'Segoe UI',Arial,sans-serif;color:#16181d;margin:36px;}
-      h1{font-size:22px;letter-spacing:.5px;border-bottom:3px solid #0aa4bb;padding-bottom:8px;}
-      h2{font-size:15px;color:#0e7490;margin-top:22px;}
+      h1{font-size:22px;letter-spacing:.5px;border-bottom:3px solid #D4D4D4;padding-bottom:8px;}
+      h2{font-size:15px;color:#8A8A8A;margin-top:22px;}
       table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
-      td{border:1px solid #d8dde3;padding:5px 8px;} td:first-child{width:45%;color:#4a5361;}
-      ul{font-size:12px;} .muted{color:#7a828e;font-size:11px;}
+      td{border:1px solid #D6D6D6;padding:5px 8px;} td:first-child{width:45%;color:#4E4E4E;}
+      ul{font-size:12px;} .muted{color:#7E7E7E;font-size:11px;}
     </style></head><body>
       <h1>Sonivex Studio — Simulation Report</h1>
       <p class="muted">Project: ${project.name} · Generated ${new Date().toLocaleString()} · Design. Simulate. Validate.</p>
@@ -743,7 +743,7 @@ export class AppController {
         'Time over Xmax': `${overXmaxPct.toFixed(1)} %`,
       })}</table>
       <h2>Warnings</h2><ul>${warn}</ul>
-      <h2>Limitations</h2><p style="font-size:11px;color:#5a626e">Excursion/SPL values are lumped-parameter estimates derived from the entered Thiele/Small parameters and the track's spectral content scaled to the set amplifier voltage. They are engineering estimates, not measurements of a physical system. For validated displacement, measure with a calibration rig.</p>
+      <h2>Limitations</h2><p style="font-size:11px;color:#606060">Excursion/SPL values are lumped-parameter estimates derived from the entered Thiele/Small parameters and the track's spectral content scaled to the set amplifier voltage. They are engineering estimates, not measurements of a physical system. For validated displacement, measure with a calibration rig.</p>
     </body></html>`;
     const r = await bridge().printToPDF(html);
     if (r.error) { store.getState().log('error', `PDF export failed: ${r.error}`); return; }

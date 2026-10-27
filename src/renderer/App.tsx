@@ -213,12 +213,12 @@ export const App: React.FC = () => {
         <div className="boot-splash">
           <div className="boot-logo">
             <svg viewBox="0 0 64 64" width="72" height="72">
-              <circle cx="32" cy="32" r="27" fill="none" stroke="#164e5a" strokeWidth="3" />
-              <circle cx="32" cy="32" r="19" fill="none" stroke="#0e7490" strokeWidth="2.5" opacity="0.8">
+              <circle cx="32" cy="32" r="27" fill="none" stroke="#3A3A3A" strokeWidth="3" />
+              <circle cx="32" cy="32" r="19" fill="none" stroke="#8A8A8A" strokeWidth="2.5" opacity="0.8">
                 <animate attributeName="r" values="19;22;19" dur="2s" repeatCount="indefinite" />
               </circle>
-              <circle cx="32" cy="32" r="11" fill="none" stroke="#22d3ee" strokeWidth="2.5" />
-              <circle cx="32" cy="32" r="4.5" fill="#67e8f9" />
+              <circle cx="32" cy="32" r="11" fill="none" stroke="#FFFFFF" strokeWidth="2.5" />
+              <circle cx="32" cy="32" r="4.5" fill="#F0F0F0" />
             </svg>
           </div>
           <div className="boot-title">SONIVEX STUDIO</div>

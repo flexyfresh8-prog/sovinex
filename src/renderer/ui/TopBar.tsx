@@ -164,14 +164,14 @@ export const TopBar: React.FC = () => {
           <svg viewBox="0 0 32 32" width="22" height="22">
             <defs>
               <radialGradient id="lg" cx="50%" cy="45%" r="60%">
-                <stop offset="0%" stopColor="#22d3ee" />
-                <stop offset="100%" stopColor="#0e7490" />
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="100%" stopColor="#8A8A8A" />
               </radialGradient>
             </defs>
             <circle cx="16" cy="16" r="13.5" fill="none" stroke="url(#lg)" strokeWidth="2" />
-            <circle cx="16" cy="16" r="9" fill="none" stroke="#22d3ee" strokeWidth="1.2" opacity="0.7" />
-            <circle cx="16" cy="16" r="5" fill="none" stroke="#67e8f9" strokeWidth="1.4" />
-            <circle cx="16" cy="16" r="1.8" fill="#67e8f9" />
+            <circle cx="16" cy="16" r="9" fill="none" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.7" />
+            <circle cx="16" cy="16" r="5" fill="none" stroke="#F0F0F0" strokeWidth="1.4" />
+            <circle cx="16" cy="16" r="1.8" fill="#F0F0F0" />
           </svg>
         </div>
         <div className="brand-text">

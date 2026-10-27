@@ -1,8 +1,16 @@
 /**
- * Procedural reference subwoofer — 15 parts, 1-based part #3 is the cone,
- * matching the user's Tripo model layout (tripo_part_0..14 → parts 1..15).
- * High-detail geometry: lathe profiles with smooth normals, rounded cabinet,
- * rolled surround, motor stack, vents, trim details.
+ * Sonivex Studio — ULTRA-DETAIL procedural reference subwoofer.
+ * Pure black & white edition: every material is neutral grayscale.
+ *
+ * 15 numbered parts (1-based part #3 = the cone), matching the historic
+ * Tripo layout contract: p2 = cone (moving), p3 = dust cap (moving),
+ * p5 = surround (deformable). Additional unnumbered dress-up geometry
+ * (gasket, feet, tinsel leads, port flare) is added without breaking the
+ * 15-slot contract.
+ *
+ * Built at real scale in meters. Driver axis = +Z (LatheGeometry revolves
+ * around Y, so every axial profile is rotated with rotateX(PI/2) to map
+ * profile-Y onto world-Z).
  */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
@@ -13,16 +21,14 @@ export interface BuiltPart {
   id: string;
   name: string;
   meshIndex: number;
-  object: THREE.Object3D;   // contains a single mesh
-  mesh: THREE.Mesh;
+  object: THREE.Object3D;   // contains one or more meshes
+  mesh: THREE.Mesh;         // primary pick target
 }
 
 export interface AssemblyBuild {
   root: THREE.Group;
   parts: BuiltPart[];
-  /** approx cone outer radius (m) for pivot defaults */
   coneRadiusM: number;
-  /** driver axis direction (unit) — procedural model fires along +Z */
   axis: 'x' | 'y' | 'z';
 }
 
@@ -34,9 +40,36 @@ const M = (geo: THREE.BufferGeometry, mat: THREE.Material, name: string): THREE.
   return mesh;
 };
 
-function latheFromPoints(pts: [number, number][], segments = 128): THREE.LatheGeometry {
-  const v = pts.map(([x, y]) => new THREE.Vector2(Math.max(x, 1e-4), y));
-  return new THREE.LatheGeometry(v, segments);
+/** lathe with profile mapped onto the +Z driver axis */
+function latheZ(pts: [number, number][], segments = 144): THREE.LatheGeometry {
+  const v = pts.map(([r, z]) => new THREE.Vector2(Math.max(r, 1e-4), z));
+  return new THREE.LatheGeometry(v, segments).rotateX(Math.PI / 2);
+}
+
+/** chamfered disc facing +Z */
+function chamferDiscZ(r: number, rTop: number, h: number, seg = 80): THREE.LatheGeometry {
+  return latheZ([
+    [r, -h / 2], [r, -h * 0.32], [rTop, -h * 0.12], [rTop, h * 0.12], [r, h * 0.32], [r, h / 2],
+  ], seg);
+}
+
+/** rectangular plate with a circular driver cutout, thickness along +Z */
+function holedPlateZ(w: number, h: number, depth: number, holeR: number, seg = 96): THREE.ExtrudeGeometry {
+  const shape = new THREE.Shape();
+  const hw = w / 2, hh = h / 2;
+  shape.moveTo(-hw, -hh); shape.lineTo(hw, -hh); shape.lineTo(hw, hh); shape.lineTo(-hw, hh); shape.closePath();
+  const hole = new THREE.Path();
+  for (let i = 0; i <= seg; i++) {
+    const a = (i / seg) * Math.PI * 2;
+    const x = Math.cos(a) * holeR, y = Math.sin(a) * holeR;
+    if (i === 0) hole.moveTo(x, y); else hole.lineTo(x, y);
+  }
+  shape.holes.push(hole);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth, bevelEnabled: true, bevelThickness: 0.0018, bevelSize: 0.0018, bevelSegments: 2, curveSegments: 6,
+  });
+  geo.translate(0, 0, -depth / 2);
+  return geo;
 }
 
 export function buildProceduralSubwoofer(driver: DriverParams, box: BoxParams): AssemblyBuild {
@@ -48,169 +81,258 @@ export function buildProceduralSubwoofer(driver: DriverParams, box: BoxParams): 
   const add = (name: string, obj: THREE.Object3D, mesh: THREE.Mesh) => {
     obj.name = `sonivex_part_${idx}`;
     obj.userData.partId = `p${idx}`;
-    mesh.userData.partId = `p${idx}`;
     root.add(obj);
     parts.push({ id: `p${idx}`, name, meshIndex: idx, object: obj, mesh });
     idx++;
   };
+  const tagMeshes = (obj: THREE.Object3D, partId: string) => {
+    obj.traverse((c) => { c.userData.partId = partId; });
+  };
 
   // ---- dimensions (meters)
-  const coneR = (driver.effectiveDiameterCM / 100) / 2 + driver.surroundWidthMM / 1000; // outer incl. surround
+  const coneR = ((driver.effectiveDiameterCM / 100) / 2) + driver.surroundWidthMM / 1000; // outer incl. surround
   const baffleW = Math.max(box.wCM / 100, coneR * 2.6);
   const baffleH = Math.max(box.hCM / 100, coneR * 2.6);
-  const cabD = Math.max(box.dCM / 100, 0.28);
-  const driverDepth = 0.12 + driver.magnetHeightCM / 100 + 0.05;
+  const cabD = Math.max(box.dCM / 100, 0.30);
+  const cy = baffleH / 2;           // driver centerline height
+  const zFace = cabD / 2;           // front face z
+  const driverZ = zFace + 0.004;    // driver mounting plane (surface mount on the baffle)
 
-  // ---- materials
+  // ---- materials (strictly neutral grayscale)
   const cabinetMat = new THREE.MeshPhysicalMaterial({
-    color: '#0e1116', roughness: 0.42, metalness: 0.1,
-    clearcoat: 0.85, clearcoatRoughness: 0.22,
-    normalMap: tex.micro!, normalScale: new THREE.Vector2(0.18, 0.18),
-    envMapIntensity: 1.0,
+    color: '#0f0f0f', roughness: 0.44, metalness: 0.08,
+    clearcoat: 0.8, clearcoatRoughness: 0.24,
+    normalMap: tex.micro!, normalScale: new THREE.Vector2(0.16, 0.16),
+    envMapIntensity: 0.9, side: THREE.DoubleSide,
+  });
+  const baffleMat = new THREE.MeshPhysicalMaterial({
+    color: '#131313', roughness: 0.5, metalness: 0.05,
+    normalMap: tex.micro!, normalScale: new THREE.Vector2(0.12, 0.12),
+    envMapIntensity: 0.85, side: THREE.DoubleSide,
   });
   const coneMat = new THREE.MeshPhysicalMaterial({
     color: driver.coneColor, roughness: 0.68, metalness: 0.06,
     normalMap: driver.coneMaterial === 'aluminum' ? tex.brushed! : driver.coneMaterial === 'composite' ? tex.weave! : tex.paper!,
     normalScale: new THREE.Vector2(0.5, 0.5),
-    envMapIntensity: 0.8,
+    envMapIntensity: 0.8, side: THREE.DoubleSide,
   });
   const surroundMat = new THREE.MeshPhysicalMaterial({
-    color: '#17191e', roughness: 0.86, metalness: 0.0,
+    color: '#181818', roughness: 0.86, metalness: 0.0,
     normalMap: tex.rubber!, normalScale: new THREE.Vector2(0.35, 0.35),
-    sheen: 0.4, sheenColor: new THREE.Color('#20242c'),
+    sheen: 0.35, sheenColor: new THREE.Color('#2a2a2a'),
+    side: THREE.DoubleSide,
   });
   const capMat = new THREE.MeshPhysicalMaterial({
-    color: '#181c23', roughness: 0.15, metalness: 0.3,
-    clearcoat: 1.0, clearcoatRoughness: 0.08, envMapIntensity: 1.4,
+    color: '#9e9e9e', roughness: 0.18, metalness: 0.92,
+    clearcoat: 0.6, clearcoatRoughness: 0.2, envMapIntensity: 1.3, side: THREE.DoubleSide,
   });
-  const motorMat = new THREE.MeshPhysicalMaterial({
-    color: '#3b4048', roughness: 0.34, metalness: 0.92,
-    normalMap: tex.brushed!, normalScale: new THREE.Vector2(0.4, 0.4),
+  const motorMat = new THREE.MeshPhysicalMaterial({   // cast aluminum
+    color: '#4b4b4b', roughness: 0.38, metalness: 0.9,
+    normalMap: tex.brushed!, normalScale: new THREE.Vector2(0.4, 0.4), side: THREE.DoubleSide,
   });
   const darkMetal = new THREE.MeshPhysicalMaterial({
-    color: '#22262c', roughness: 0.5, metalness: 0.85,
-    normalMap: tex.brushed!, normalScale: new THREE.Vector2(0.3, 0.3),
+    color: '#2c2c2c', roughness: 0.5, metalness: 0.85,
+    normalMap: tex.brushed!, normalScale: new THREE.Vector2(0.3, 0.3), side: THREE.DoubleSide,
   });
-  const accentMat = new THREE.MeshPhysicalMaterial({
-    color: '#0e7f8f', roughness: 0.3, metalness: 0.6,
-    emissive: '#0aa4bb', emissiveIntensity: 0.25,
+  const steelMat = new THREE.MeshPhysicalMaterial({   // polished steel accents (was teal)
+    color: '#d6d6d6', roughness: 0.32, metalness: 0.95,
+    normalMap: tex.brushed!, normalScale: new THREE.Vector2(0.25, 0.25),
+    envMapIntensity: 1.2, side: THREE.DoubleSide,
+  });
+  const magnetMat = new THREE.MeshPhysicalMaterial({
+    color: '#262626', roughness: 0.62, metalness: 0.35, side: THREE.DoubleSide,
+  });
+  const rubberMat = new THREE.MeshPhysicalMaterial({
+    color: '#141414', roughness: 0.92, metalness: 0.0,
+    normalMap: tex.rubber!, normalScale: new THREE.Vector2(0.3, 0.3), side: THREE.DoubleSide,
+  });
+  const voidMat = new THREE.MeshStandardMaterial({    // deep recesses / port throats
+    color: '#050505', roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide,
   });
 
   // ================= Part 1: Enclosure =================
   {
-    const geo = new RoundedBoxGeometry(baffleW, baffleH, cabD, 5, 0.022);
-    const mesh = M(geo, cabinetMat, 'Enclosure');
-    mesh.position.set(0, baffleH / 2, 0);
-    add('Enclosure', mesh, mesh);
+    const g = new THREE.Group();
+    // shell: rear section (front is the baffle plate)
+    const shellDepth = cabD - 0.024;
+    const shell = M(new RoundedBoxGeometry(baffleW, baffleH, shellDepth, 5, 0.024), cabinetMat, 'Enclosure');
+    shell.position.set(0, cy, -0.012);
+    g.add(shell);
+    // front baffle plate with a real driver cutout
+    const baffle = M(holedPlateZ(baffleW * 0.96, baffleH * 0.97, 0.026, coneR * 1.005), baffleMat, 'Baffle');
+    baffle.position.set(0, cy, zFace - 0.011);
+    g.add(baffle);
+    // driver rebate collar
+    const rebate = M(latheZ([
+      [coneR * 1.015, 0.0], [coneR * 1.015, 0.008], [coneR * 1.06, 0.012], [coneR * 1.06, 0.016], [coneR * 1.005, 0.016],
+    ], 96), baffleMat, 'Rebate');
+    rebate.position.set(0, cy, zFace + 0.003);
+    g.add(rebate);
+    // gasket ring (static rubber)
+    const gasket = M(latheZ([
+      [coneR * 1.0, 0.0], [coneR * 1.0, 0.0045], [coneR * 1.02, 0.006], [coneR * 1.02, 0.0],
+    ], 96), rubberMat, 'Gasket');
+    gasket.position.set(0, cy, zFace + 0.003);
+    g.add(gasket);
+    // 8 flange bolt bosses around the driver
+    const boltR = coneR * 1.045;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+      const boss = M(new THREE.CylinderGeometry(0.011, 0.011, 0.008, 20).rotateX(Math.PI / 2), steelMat, 'flangeBolt');
+      boss.position.set(Math.cos(a) * boltR, cy + Math.sin(a) * boltR, zFace + 0.009);
+      g.add(boss);
+    }
+    // 4 rubber feet
+    const footOff = Math.min(baffleW, baffleH) * 0.32;
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => {
+      const foot = M(new THREE.CylinderGeometry(0.021, 0.024, 0.012, 24), rubberMat, 'Foot');
+      foot.position.set(sx * footOff, 0.006, sy * (cabD * 0.34));
+      g.add(foot);
+    });
+    add('Enclosure', g, shell);
+    tagMeshes(g, 'p0');
   }
 
-  // baffle plate (visual detail, part of enclosure look but separate slot not needed)
   // ================= Part 2: Driver Motor / Basket =================
   {
     const g = new THREE.Group();
-    // frame ring
-    const ring = M(new THREE.CylinderGeometry(coneR * 1.04, coneR * 1.02, 0.035, 96, 1, false).rotateX(Math.PI / 2), darkMetal, 'frame');
-    ring.position.z = 0.012;
-    g.add(ring);
-    // basket cone shell
-    const basket = M(latheFromPoints([
-      [coneR * 0.42, -0.10], [coneR * 0.5, -0.02], [coneR * 0.86, 0.045], [coneR * 1.0, 0.03],
-    ], 96), motorMat, 'basket');
-    g.add(basket);
-    // spokes
-    const spokes = 8;
-    for (let i = 0; i < spokes; i++) {
-      const a = (i / spokes) * Math.PI * 2;
-      const sp = M(new THREE.BoxGeometry(0.016, 0.012, 0.16), motorMat, 'spoke');
-      sp.position.set(Math.cos(a) * coneR * 0.7, Math.sin(a) * coneR * 0.7, -0.03);
-      sp.rotation.z = a + Math.PI / 2;
-      sp.rotation.x = 0.35;
-      g.add(sp);
+    const flangeR = coneR * 1.04;
+    const flange = M(latheZ([
+      [coneR * 0.42, -0.004], [coneR * 0.42, 0.02], [coneR * 0.86, 0.026], [flangeR, 0.02], [flangeR, 0.006], [coneR * 0.98, 0.0],
+    ], 112), darkMetal, 'Flange');
+    g.add(flange);
+    // 8 cast spokes with I-beam look
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const web = M(new THREE.BoxGeometry(0.014, 0.012, coneR * 0.45), motorMat, 'spokeWeb');
+      web.position.set(Math.cos(a) * coneR * 0.62, Math.sin(a) * coneR * 0.62, -0.068);
+      web.rotation.z = a + Math.PI / 2;
+      web.rotation.x = 0.30;
+      const perpX = Math.cos(a + Math.PI / 2), perpY = Math.sin(a + Math.PI / 2);
+      const fl1 = M(new THREE.BoxGeometry(0.004, 0.016, coneR * 0.72), motorMat, 'spokeFlange');
+      fl1.position.set(web.position.x + perpX * 0.009, web.position.y + perpY * 0.009, web.position.z);
+      fl1.rotation.copy(web.rotation);
+      const fl2 = M(new THREE.BoxGeometry(0.004, 0.016, coneR * 0.72), motorMat, 'spokeFlange');
+      fl2.position.set(web.position.x - perpX * 0.009, web.position.y - perpY * 0.009, web.position.z);
+      fl2.rotation.copy(web.rotation);
+      g.add(web, fl1, fl2);
     }
-    // magnet stack (behind)
-    const magR = driver.magnetDiameterCM / 200;
-    const topPlate = M(new THREE.CylinderGeometry(magR * 0.9, magR * 0.9, 0.012, 64).rotateX(Math.PI / 2), motorMat, 'topPlate');
-    topPlate.position.z = -0.115;
-    const magnet = M(new THREE.CylinderGeometry(magR, magR, driver.magnetHeightCM / 100, 64).rotateX(Math.PI / 2), darkMetal, 'magnet');
-    magnet.position.z = -0.115 - driver.magnetHeightCM / 200 - 0.006;
-    const botPlate = M(new THREE.CylinderGeometry(magR * 0.9, magR * 0.9, 0.012, 64).rotateX(Math.PI / 2), motorMat, 'botPlate');
-    botPlate.position.z = -0.115 - driver.magnetHeightCM / 100 - 0.012;
-    g.add(topPlate, magnet, botPlate);
-    // pole vent
-    const pole = M(new THREE.CylinderGeometry(magR * 0.32, magR * 0.36, 0.03, 32).rotateX(Math.PI / 2), motorMat, 'pole');
-    pole.position.z = -0.115 - driver.magnetHeightCM / 100 - 0.02;
+    // spider mount shelf
+    const spiderShelf = M(latheZ([
+      [coneR * 0.34, -0.066], [coneR * 0.36, -0.058], [coneR * 0.44, -0.054], [coneR * 0.44, -0.066],
+    ], 96), motorMat, 'SpiderShelf');
+    g.add(spiderShelf);
+    // magnet stack (double disc, chamfered)
+    const magR = Math.max(driver.magnetDiameterCM / 200, coneR * 0.52);
+    const magH = Math.max(driver.magnetHeightCM / 100, 0.028);
+    const topPlate = M(chamferDiscZ(magR * 0.94, magR * 0.88, 0.012), motorMat, 'TopPlate');
+    topPlate.position.z = -0.075;
+    const magA = M(chamferDiscZ(magR, magR * 0.96, magH * 0.52), magnetMat, 'MagnetA');
+    magA.position.z = -0.081 - magH * 0.26;
+    const magB = M(chamferDiscZ(magR, magR * 0.96, magH * 0.52), magnetMat, 'MagnetB');
+    magB.position.z = -0.081 - magH * 0.52 - 0.004 - magH * 0.26;
+    const botPlate = M(chamferDiscZ(magR * 0.94, magR * 0.88, 0.012), motorMat, 'BotPlate');
+    botPlate.position.z = -0.081 - magH - 0.008;
+    g.add(topPlate, magA, magB, botPlate);
+    // pole piece bullet + vent
+    const poleR = magR * 0.34;
+    const poleBack = -0.086 - magH;
+    const pole = M(latheZ([
+      [0.0001, poleBack - 0.014], [poleR * 0.7, poleBack - 0.012], [poleR, poleBack - 0.006],
+      [poleR, poleBack + 0.058], [poleR * 0.92, poleBack + 0.064], [0.0001, poleBack + 0.064],
+    ], 72), motorMat, 'Pole');
     g.add(pole);
-    g.position.z = cabD / 2 - 0.02;
-    add('Driver Motor / Basket', g, ring);
+    const poleVent = M(new THREE.CylinderGeometry(poleR * 0.45, poleR * 0.45, 0.02, 32, 1, true).rotateX(Math.PI / 2), voidMat, 'PoleVent');
+    poleVent.position.z = poleBack - 0.006;
+    g.add(poleVent);
+    const plugRing = M(new THREE.TorusGeometry(magR * 0.96, 0.004, 10, 72), darkMetal, 'PlugRing');
+    plugRing.position.z = -0.081 - magH - 0.004;
+    g.add(plugRing);
+    g.position.set(0, cy, driverZ);
+    add('Driver Motor / Basket', g, flange);
+    tagMeshes(g, 'p1');
   }
 
-  // ================= Part 3: CONE (user-designated) =================
-  let coneObj: THREE.Object3D;
+  // ================= Part 3: CONE (motion-ready) =================
   {
     const depth = driver.coneDepthMM / 1000;
     const g = new THREE.Group();
-    // cone profile: outer rim → apex plateau
     const profile: [number, number][] = [
       [coneR * 0.985, 0.0],
-      [coneR * 0.96, -depth * 0.25],
-      [coneR * 0.80, -depth * 0.62],
-      [coneR * 0.55, -depth * 0.88],
+      [coneR * 0.975, -0.004],
+      [coneR * 0.955, -depth * 0.16],
+      [coneR * 0.895, -depth * 0.38],
+      [coneR * 0.80, -depth * 0.58],
+      [coneR * 0.68, -depth * 0.76],
+      [coneR * 0.55, -depth * 0.90],
+      [coneR * 0.455, -depth * 0.985],
+      [coneR * 0.42, -depth],
       [coneR * 0.40, -depth],
-      [coneR * 0.38, -depth],
     ];
-    const cone = M(latheFromPoints(profile, 128), coneMat, 'Cone');
+    const cone = M(latheZ(profile, 160), coneMat, 'Cone');
     g.add(cone);
-    // stiffening rib
-    const rib = M(latheFromPoints([
-      [coneR * 0.86, -depth * 0.5], [coneR * 0.845, -depth * 0.52], [coneR * 0.795, -depth * 0.655], [coneR * 0.81, -depth * 0.635],
-    ], 128), coneMat, 'rib');
-    g.add(rib);
-    coneObj = g;
-    g.position.z = cabD / 2 + 0.008;
+    const rib1 = M(latheZ([
+      [coneR * 0.865, -depth * 0.47], [coneR * 0.855, -depth * 0.50], [coneR * 0.808, -depth * 0.615], [coneR * 0.818, -depth * 0.588],
+    ], 160), coneMat, 'RibA');
+    const rib2 = M(latheZ([
+      [coneR * 0.615, -depth * 0.79], [coneR * 0.607, -depth * 0.815], [coneR * 0.566, -depth * 0.90], [coneR * 0.574, -depth * 0.878],
+    ], 160), coneMat, 'RibB');
+    g.add(rib1, rib2);
+    const collar = M(new THREE.CylinderGeometry(coneR * 0.40, coneR * 0.40, 0.010, 96, 1, true).rotateX(Math.PI / 2), coneMat, 'Collar');
+    collar.position.z = -depth + 0.005;
+    g.add(collar);
+    g.position.set(0, cy, driverZ + 0.0015);
     add('Cone', g, cone);
+    tagMeshes(g, 'p2');
   }
 
   // ================= Part 4: Dust Cap / Dome =================
   {
     const capR = coneR * driver.dustCapRatio;
-    const h = driver.dustCapHeight / 1000;
-    const geo = latheFromPoints([
-      [0.0001, h], [capR * 0.45, h * 0.86], [capR * 0.8, h * 0.52], [capR, 0.0], [capR * 1.02, -0.004],
-    ], 96);
-    const cap = M(geo, capMat, 'DustCap');
-    cap.position.z = -driver.coneDepthMM / 1000 + 0.004;
+    const h = Math.max(driver.dustCapHeight / 1000, 0.012);
+    const depth = driver.coneDepthMM / 1000;
     const g = new THREE.Group();
-    g.add(cap);
-    g.position.z = cabD / 2 + 0.008;
+    const cap = M(latheZ([
+      [0.0001, h], [capR * 0.38, h * 0.92], [capR * 0.68, h * 0.66], [capR * 0.88, h * 0.34], [capR, 0.0], [capR * 1.015, -0.005],
+    ], 112), capMat, 'DustCap');
+    cap.position.z = -depth + 0.004;
+    const seam = M(new THREE.TorusGeometry(capR * 1.01, 0.0016, 8, 96), capMat, 'CapSeam');
+    seam.position.z = -depth + 0.004;
+    g.add(cap, seam);
+    g.position.set(0, cy, driverZ + 0.0015);
     add('Dust Cap / Dome', g, cap);
+    tagMeshes(g, 'p3');
   }
 
   // ================= Part 5: Motor Rear Plug =================
   {
-    const plug = M(new THREE.CylinderGeometry(coneR * 0.36, coneR * 0.42, 0.03, 64).rotateX(Math.PI / 2), darkMetal, 'RearPlug');
-    plug.position.set(0, 0, -cabD / 2 - 0.005);
-    add('Motor Rear Plug', plug, plug);
+    const magR = Math.max(driver.magnetDiameterCM / 200, coneR * 0.52);
+    const magH = Math.max(driver.magnetHeightCM / 100, 0.028);
+    const g = new THREE.Group();
+    const plug = M(chamferDiscZ(magR * 0.97, magR * 0.9, 0.026), darkMetal, 'RearPlug');
+    plug.position.set(0, cy, -zFace - 0.013);
+    g.add(plug);
+    add('Motor Rear Plug', g, plug);
+    tagMeshes(g, 'p4');
   }
 
   // ================= Part 6: Surround Ring (deformable) =================
-  let surroundObj: THREE.Object3D;
   {
     const w = driver.surroundWidthMM / 1000;
-    const rollPts: [number, number][] = [];
     const rIn = coneR * 0.985, rOut = rIn + w;
-    for (let i = 0; i <= 24; i++) {
-      const t = i / 24;
-      const r = rIn + t * w;
-      const z = Math.sin(t * Math.PI) * w * 0.92 - w * 0.28;
-      rollPts.push([r, z]);
+    const rollPts: [number, number][] = [];
+    const N = 36;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      rollPts.push([rIn + t * w, Math.sin(t * Math.PI) * w * 0.95 - w * 0.30]);
     }
-    const geo = latheFromPoints(rollPts, 128);
-    const roll = M(geo, surroundMat, 'Surround');
+    rollPts.push([rOut + 0.006, -w * 0.34], [rOut + 0.006, -w * 0.40]);
+    const roll = M(latheZ(rollPts, 160), surroundMat, 'Surround');
     const g = new THREE.Group();
     g.add(roll);
-    g.position.z = cabD / 2 + 0.008;
-    surroundObj = g;
+    g.position.set(0, cy, driverZ + 0.0015);
     add('Surround Ring', g, roll);
+    tagMeshes(g, 'p5');
   }
 
   // ================= Parts 7-10: Side vents =================
@@ -218,62 +340,104 @@ export function buildProceduralSubwoofer(driver: DriverParams, box: BoxParams): 
   ventNames.forEach((name, i) => {
     const upper = i % 2 === 0;
     const side = i < 2 ? -1 : 1;
-    const v = M(new THREE.CylinderGeometry(0.035, 0.035, 0.012, 32).rotateZ(Math.PI / 2), darkMetal, name);
-    v.position.set(side * baffleW / 2 - side * 0.002, baffleH * (upper ? 0.52 : 0.44), cabD * (i < 2 ? -0.72 : 0.72) * 0.47);
-    const ringA = M(new THREE.TorusGeometry(0.036, 0.004, 12, 32).rotateY(Math.PI / 2), accentMat, name + '_ring');
-    ringA.position.copy(v.position);
     const g = new THREE.Group();
-    g.add(v, ringA);
-    add(name, g, v);
+    const vr = 0.032 + 0.006 * (upper ? 1 : 0);
+    const tube = M(new THREE.CylinderGeometry(vr, vr, 0.014, 40).rotateZ(Math.PI / 2), darkMetal, name);
+    tube.position.set(side * baffleW / 2 - side * 0.002, baffleH * (upper ? 0.55 : 0.42), cabD * (i < 2 ? -0.66 : 0.66) * 0.47);
+    const bezel = M(new THREE.TorusGeometry(vr + 0.002, 0.0035, 12, 48).rotateY(Math.PI / 2), steelMat, name + '_bezel');
+    bezel.position.copy(tube.position);
+    const grill = M(new THREE.CircleGeometry(vr - 0.002, 32).rotateY(Math.PI / 2 * (side > 0 ? -1 : 1)), voidMat, name + '_grill');
+    grill.position.set(side * baffleW / 2 + side * 0.006, tube.position.y, tube.position.z);
+    g.add(tube, bezel, grill);
+    add(name, g, tube);
+    tagMeshes(g, `p${idx - 1}`);
   });
 
   // ================= Parts 11-12: Trim details =================
   ['Trim Detail A', 'Trim Detail B'].forEach((name, i) => {
-    const strip = M(new THREE.BoxGeometry(0.012, 0.09, 0.02), accentMat, name);
-    strip.position.set(baffleW * 0.28 * (i === 0 ? 1 : 1.25), baffleH * 0.72, cabD / 2 * (i === 0 ? 1 : -1) * 0.86);
     const g = new THREE.Group();
+    const strip = M(new RoundedBoxGeometry(0.014, 0.10, 0.018, 2, 0.004), steelMat, name);
+    strip.position.set(baffleW * (i === 0 ? 0.30 : 0.36), baffleH * (i === 0 ? 0.74 : 0.70), cabD / 2 * (i === 0 ? 1 : -1) * 0.86);
     g.add(strip);
+    for (let s = 0; s < 2; s++) {
+      const screw = M(new THREE.CylinderGeometry(0.0045, 0.0045, 0.004, 12).rotateX(Math.PI / 2), darkMetal, name + '_screw');
+      screw.position.set(strip.position.x, strip.position.y + (s === 0 ? 0.038 : -0.038), strip.position.z + (strip.position.z > 0 ? 0.01 : -0.01));
+      g.add(screw);
+    }
     add(name, g, strip);
+    tagMeshes(g, `p${idx - 1}`);
   });
 
   // ================= Part 13: Terminal badge =================
   {
-    const plate = M(new THREE.CylinderGeometry(0.045, 0.045, 0.012, 48).rotateX(Math.PI / 2), darkMetal, 'TerminalBadge');
-    plate.position.set(baffleW * 0.3, baffleH * 0.78, -cabD / 2 - 0.004);
-    const screws = M(new THREE.CylinderGeometry(0.006, 0.006, 0.016, 12).rotateX(Math.PI / 2), motorMat, 'screws');
-    screws.position.copy(plate.position).z -= 0.002;
     const g = new THREE.Group();
-    g.add(plate, screws);
+    const plate = M(new RoundedBoxGeometry(0.11, 0.075, 0.012, 2, 0.004), darkMetal, 'TerminalPlate');
+    plate.position.set(baffleW * 0.3, baffleH * 0.82, -zFace - 0.006);
+    g.add(plate);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => {
+      const screw = M(new THREE.CylinderGeometry(0.005, 0.005, 0.005, 14).rotateX(Math.PI / 2), steelMat, 'terminalScrew');
+      screw.position.set(plate.position.x + sx * 0.046, plate.position.y + sy * 0.027, plate.position.z - 0.006);
+      g.add(screw);
+    });
+    [[-0.024, '#e8e8e8'], [0.024, '#2c2c2c']].forEach(([dx, col]) => {
+      const px = plate.position.x + (dx as number);
+      const stud = M(new THREE.CylinderGeometry(0.008, 0.008, 0.016, 20).rotateX(Math.PI / 2), steelMat, 'postStud');
+      stud.position.set(px, plate.position.y, plate.position.z - 0.014);
+      g.add(stud);
+      for (let k = 0; k < 4; k++) {
+        const knurl = M(new THREE.TorusGeometry(0.0105, 0.0016, 8, 24), steelMat, 'postKnurl');
+        knurl.position.set(px, plate.position.y, plate.position.z - 0.010 - k * 0.0035);
+        g.add(knurl);
+      }
+      const capTop = M(new THREE.CylinderGeometry(0.011, 0.011, 0.006, 20).rotateX(Math.PI / 2),
+        new THREE.MeshPhysicalMaterial({ color: col as string, roughness: 0.35, metalness: 0.2, clearcoat: 0.6 }), 'postCap');
+      capTop.position.set(px, plate.position.y, plate.position.z - 0.024);
+      g.add(capTop);
+    });
     add('Terminal Badge', g, plate);
+    tagMeshes(g, `p${idx - 1}`);
   }
 
   // ================= Part 14: Top control strip =================
   {
-    const strip = M(new RoundedBoxGeometry(0.06, 0.006, cabD * 0.5, 2, 0.002), accentMat, 'TopStrip');
+    const g = new THREE.Group();
+    const strip = M(new RoundedBoxGeometry(0.07, 0.007, cabD * 0.5, 2, 0.002), steelMat, 'TopStrip');
     strip.position.set(-baffleW * 0.28, baffleH + 0.002, 0);
-    const g = new THREE.Group();
     g.add(strip);
+    ['#f2f2f2', '#8a8a8a', '#1a1a1a'].forEach((c, k) => {
+      const dot = M(new THREE.CylinderGeometry(0.004, 0.004, 0.003, 16),
+        new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.25, clearcoat: 1, metalness: 0.1 }), 'indicator');
+      dot.position.set(-baffleW * 0.28 + 0.018 + k * 0.016, baffleH + 0.007, 0);
+      g.add(dot);
+    });
     add('Top Control Strip', g, strip);
+    tagMeshes(g, `p${idx - 1}`);
   }
 
-  // ================= Part 15: Micro detail (footer logo) =================
+  // ================= Part 15: Micro detail (footer logo medallion) =================
   {
-    const logo = M(new THREE.TorusGeometry(0.02, 0.0035, 10, 40), motorMat, 'Logo');
-    logo.rotation.x = Math.PI / 2;
-    logo.position.set(baffleW * 0.32, 0.012, cabD * 0.3);
     const g = new THREE.Group();
-    g.add(logo);
-    add('Micro Detail', g, logo);
+    const medallion = M(new THREE.CylinderGeometry(0.024, 0.024, 0.004, 48).rotateX(Math.PI / 2), darkMetal, 'LogoDisc');
+    medallion.position.set(baffleW * 0.32, 0.016, cabD * 0.3);
+    const ring = M(new THREE.TorusGeometry(0.021, 0.0028, 10, 48), steelMat, 'LogoRing');
+    ring.rotation.x = Math.PI / 2;
+    ring.position.copy(medallion.position).z += 0.002;
+    g.add(medallion, ring);
+    add('Micro Detail', g, medallion);
+    tagMeshes(g, `p${idx - 1}`);
   }
 
-  // port on baffle if ported
+  // ---- ported-box dress-up: front port with double flare ----
   if (box.type === 'ported') {
-    // visual port flare included in enclosure look (not a numbered part)
-    const pr = box.portDiameterCM / 200;
-    const flare = M(new THREE.CylinderGeometry(pr * 1.25, pr, 0.02, 64, 1, true).rotateX(Math.PI / 2),
-      new THREE.MeshPhysicalMaterial({ color: '#07080a', roughness: 0.6, side: THREE.DoubleSide }), 'portFlare');
-    flare.position.set(-baffleW * 0.27, baffleH * 0.3, cabD / 2 - 0.002);
-    root.add(flare);
+    const pr = Math.max(box.portDiameterCM / 200, 0.030);
+    const px = -baffleW * 0.27, py = baffleH * 0.30;
+    const flare = M(latheZ([
+      [pr * 1.32, 0.0], [pr * 1.28, 0.006], [pr * 1.10, 0.012], [pr, 0.012], [pr, -0.012], [pr * 1.06, -0.018], [pr * 1.02, -0.018],
+    ], 96), baffleMat, 'PortFlare');
+    flare.position.set(px, py, zFace + 0.014);
+    const throat = M(new THREE.CylinderGeometry(pr, pr, 0.02, 72, 1, true).rotateX(Math.PI / 2), voidMat, 'PortThroat');
+    throat.position.set(px, py, zFace - 0.006);
+    root.add(flare, throat);
   }
 
   return { root, parts, coneRadiusM: coneR, axis: 'z' };

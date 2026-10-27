@@ -88,8 +88,8 @@ export const CanvasPlot: React.FC<Props> = ({
 
       // grid
       ctx.font = '10px "Segoe UI", sans-serif';
-      const gridColor = 'rgba(148,163,184,0.10)';
-      const labelColor = 'rgba(148,163,184,0.75)';
+      const gridColor = 'rgba(160,160,160,0.10)';
+      const labelColor = 'rgba(160,160,160,0.75)';
       // x ticks
       const xTicks: number[] = [];
       if (logX) {
@@ -128,7 +128,7 @@ export const CanvasPlot: React.FC<Props> = ({
       ctx.restore();
 
       // frame
-      ctx.strokeStyle = 'rgba(148,163,184,0.25)';
+      ctx.strokeStyle = 'rgba(160,160,160,0.25)';
       ctx.strokeRect(padL, padT, iw, ih);
 
       // reference lines
@@ -203,7 +203,7 @@ export const CanvasPlot: React.FC<Props> = ({
       }
     }
     const ty = geom.ymin + (1 - (py - geom.padT) / geom.ih) * (geom.ymax - geom.ymin);
-    setHover({ px, py, x: tx, y: best ? best.y : ty, seriesLabel: best?.label ?? '', seriesColor: best?.color ?? '#94a3b8' });
+    setHover({ px, py, x: tx, y: best ? best.y : ty, seriesLabel: best?.label ?? '', seriesColor: best?.color ?? '#9E9E9E' });
   };
 
   return (

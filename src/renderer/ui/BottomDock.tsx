@@ -52,11 +52,11 @@ const WaveformPanel: React.FC = () => {
       const mid = h / 2;
 
       // center line
-      ctx.strokeStyle = 'rgba(148,163,184,0.15)';
+      ctx.strokeStyle = 'rgba(160,160,160,0.15)';
       ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(w, mid); ctx.stroke();
 
       if (!analysis) {
-        ctx.fillStyle = 'rgba(148,163,184,0.4)';
+        ctx.fillStyle = 'rgba(160,160,160,0.4)';
         ctx.font = '11px "Segoe UI", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Import audio to see the waveform', w / 2, mid - 10);
@@ -67,9 +67,9 @@ const WaveformPanel: React.FC = () => {
       const cols = peaksMin.length;
       // draw as bars per pixel
       const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, 'rgba(34,211,238,0.85)');
-      grad.addColorStop(0.5, 'rgba(59,130,246,0.9)');
-      grad.addColorStop(1, 'rgba(34,211,238,0.85)');
+      grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+      grad.addColorStop(0.5, 'rgba(168,168,168,0.9)');
+      grad.addColorStop(1, 'rgba(255,255,255,0.85)');
       ctx.fillStyle = grad;
       let maxAbs = 1e-6;
       for (let i = 0; i < cols; i++) maxAbs = Math.max(maxAbs, -peaksMin[i], peaksMax[i]);
@@ -85,12 +85,12 @@ const WaveformPanel: React.FC = () => {
 
       // played region tint
       const posFrac = Math.min(position / Math.max(dur, 0.01), 1);
-      ctx.fillStyle = 'rgba(34,211,238,0.08)';
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
       ctx.fillRect(0, 0, w * posFrac, h);
       // playhead
-      ctx.strokeStyle = '#22d3ee';
+      ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 1.6;
-      ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 6;
+      ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = 6;
       ctx.beginPath(); ctx.moveTo(w * posFrac, 4); ctx.lineTo(w * posFrac, h - 4); ctx.stroke();
       ctx.shadowBlur = 0;
     };
@@ -148,7 +148,7 @@ const SpectrumPanel: React.FC = () => {
       ctx.clearRect(0, 0, w, h);
 
       if (!analyser) {
-        ctx.fillStyle = 'rgba(148,163,184,0.4)';
+        ctx.fillStyle = 'rgba(160,160,160,0.4)';
         ctx.font = '11px "Segoe UI", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Live spectrum appears during playback', w / 2, h / 2);
@@ -185,7 +185,7 @@ const SpectrumPanel: React.FC = () => {
         ctx.globalAlpha = 1;
       }
       // band markers
-      ctx.fillStyle = 'rgba(148,163,184,0.7)';
+      ctx.fillStyle = 'rgba(160,160,160,0.7)';
       ctx.font = '9px "Segoe UI", sans-serif';
       ctx.textAlign = 'left';
       const marks: [string, number][] = [['SUB', 20], ['BASS', 60], ['UP-BASS', 120], ['MID', 250]];
@@ -219,27 +219,27 @@ const PhysicsPanel: React.FC = () => {
 
   const seriesMap: Record<typeof chart, { series: Series[]; refs: RefLine[]; yLabel: string }> = {
     spl: {
-      series: [{ label: 'SPL @1m', color: '#22d3ee', x: curves.freq, y: curves.splDB, fill: true }],
-      refs: [{ y: summary.maxSplXmaxDB, color: '#f59e0b', label: 'SPL @ Xmax' }],
+      series: [{ label: 'SPL @1m', color: '#FFFFFF', x: curves.freq, y: curves.splDB, fill: true }],
+      refs: [{ y: summary.maxSplXmaxDB, color: '#E2E2E2', label: 'SPL @ Xmax' }],
       yLabel: 'dB SPL',
     },
     excursion: {
       series: [
-        { label: 'Peak excursion', color: '#22d3ee', x: curves.freq, y: curves.excursionMM, fill: true },
+        { label: 'Peak excursion', color: '#FFFFFF', x: curves.freq, y: curves.excursionMM, fill: true },
       ],
-      refs: [{ y: driver.xmaxMM, color: '#ef4444', label: `Xmax ${driver.xmaxMM} mm` }],
+      refs: [{ y: driver.xmaxMM, color: '#FFFFFF', label: `Xmax ${driver.xmaxMM} mm` }],
       yLabel: 'mm',
     },
     impedance: {
-      series: [{ label: '|Z|', color: '#3b82f6', x: curves.freq, y: curves.impedanceOhm }],
-      refs: [{ y: driver.reOhm, color: 'rgba(148,163,184,0.5)', label: `Re ${driver.reOhm} Ω` }],
+      series: [{ label: '|Z|', color: '#A8A8A8', x: curves.freq, y: curves.impedanceOhm }],
+      refs: [{ y: driver.reOhm, color: 'rgba(160,160,160,0.5)', label: `Re ${driver.reOhm} Ω` }],
       yLabel: 'Ω',
     },
     port: {
       series: box.type === 'ported'
-        ? [{ label: 'Port air velocity', color: '#a78bfa', x: curves.freq, y: curves.portVelMS, fill: true }]
+        ? [{ label: 'Port air velocity', color: '#D4D4D4', x: curves.freq, y: curves.portVelMS, fill: true }]
         : [],
-      refs: box.type === 'ported' ? [{ y: 17, color: '#ef4444', label: 'Chuffing 17 m/s' }] : [],
+      refs: box.type === 'ported' ? [{ y: 17, color: '#FFFFFF', label: 'Chuffing 17 m/s' }] : [],
       yLabel: 'm/s',
     },
   };
