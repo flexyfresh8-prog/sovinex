@@ -8,7 +8,7 @@ Professional desktop software for subwoofer design, audio-driven visualization a
 ![tests](https://img.shields.io/badge/unit_tests-64%2F64-brightgreen)
 ![platform](https://img.shields.io/badge/platform-Windows_x64-blue)
 
-**Web:** [flexyfresh8-prog.github.io/sovinex](https://flexyfresh8-prog.github.io/sovinex/) — mobile-friendly site with a live 3D preview of the procedural driver (no model download; the geometry is generated on-device by the same engine as the desktop app).
+**Web:** [flexyfresh8-prog.github.io/sovinex](https://flexyfresh8-prog.github.io/sovinex/) — **Live Subwoofer** experience (v1.3): the driver alone on a dark stage — nothing else. Import your own **MP3 / WAV / OGG / FLAC** (or hit the built-in demo loop), shape it with the **8-band graphic EQ** (presets: Flat / Bass Boost / Deep / Loud / Vocal / Treble), hit play, and **watch the cone move** with the bass — signed excursion with the surround and spider flexing in real time, auto-calibrated to any track. Orbit / pinch to inspect, `MOTION` slider scales the excursion. The geometry is still 100% procedural — no model download. The classic product page remains at [studio.html](https://flexyfresh8-prog.github.io/sovinex/studio.html).
 
 ---
 
@@ -114,7 +114,9 @@ src/
   shared/        Physics engine · FFT/audio analysis · project schema (testable, no UI deps)
   renderer/      React UI · Three.js viewport · motion system · audio engine
 tests/           vitest suites
-docs/            GitHub Pages site (mobile-first + live 3D preview) · PHYSICS.md · LIMITATIONS.md · ACCEPTANCE.md
+docs/            GitHub Pages **live subwoofer experience** (sub-only stage · MP3 import ·
+                 8-band EQ · real cone excursion) + classic site (studio.html) ·
+                 PHYSICS.md · LIMITATIONS.md · ACCEPTANCE.md
 ```
 
 Security: `contextIsolation: true`, `nodeIntegration: false`, sandboxed preload bridge, every IPC payload validated (extensions, size limits, path checks).
