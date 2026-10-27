@@ -1,15 +1,20 @@
 /**
  * Sonivex Studio — mobile GitHub Pages 3D preview.
  * Loads the real 15-part Tripo GLB, applies studio fallback materials,
- * and drives the cone (tripo_part_3, driver axis X) with a
- * synthesized bass beat through a first-order excursion envelope.
- * Simplified visualization of the desktop app's motion system.
+ * and drives the cone (tripo_part_3, driver axis X) with a synthesized
+ * bass beat through a first-order excursion envelope. The surround ring
+ * (tripo_part_2) is a flex-only deformable: a vertex shader bends it along
+ * the drive axis with a radial falloff so its inner edge stays glued to the
+ * moving cone while its outer edge stays bolted to the static frame —
+ * the same attachment contract as the desktop app's MotionSystem.
  */
 
 const MODEL_URL = 'assets/models/loudspeaker.glb';
-// Geometry-verified: tripo_part_3 is the cone dish (spans the full radius to the
-// axis). tripo_part_2 is the thin surround ring around it — never animated.
+// Geometry-verified: tripo_part_3 is the cone dish (spans the full radius to
+// the axis). tripo_part_2 is the thin surround ring around it — flex-only,
+// never translated as a rigid body (same contract as the desktop app).
 const CONE_NAME = 'tripo_part_3';
+const SURROUND_NAME = 'tripo_part_2';
 const CONE_FALLBACK_INDEX = 3;
 const CARRIER_HZ = 36;
 const BPM = 120;
@@ -147,8 +152,59 @@ export async function launchDemo() {
     restX = cone.position.x;
     const cbox = new THREE.Box3().setFromObject(cone);
     const csize = new THREE.Vector3(); cbox.getSize(csize);
-    amp = 0.045 * Math.max(csize.y, csize.z) * s; // ~4.5% of cone radius
-    // animated directly as a rigid body — same contract as desktop motion modes
+    // cone.position is in its parent's (model) units; the root carries the
+    // scene scale s — so the amplitude must be derived in model units
+    // (world size ÷ s). ~4.5% of the cone diameter → ~9% of the radius.
+    amp = 0.045 * (Math.max(csize.y, csize.z) / (root.scale.x || 1));
+  }
+
+  // ---- surround flex (keeps the cone visually attached to the frame) ----
+  // The surround's inner radial edge (cone side) tracks the cone 1:1 via a
+  // vertex-shader bend; the outer radial edge (frame side) never moves.
+  // Radial falloff is computed in the Y/Z plane (⊥ to the X drive axis).
+  const flexMats = [];
+  const surround = meshes.find((m) => m.name === SURROUND_NAME)
+    || meshes.find((m) => m !== cone && /surround|ring/i.test(m.name))
+    || null;
+  if (surround) {
+    const geo = surround.geometry;
+    const pos = geo.getAttribute('position');
+    if (pos) {
+      geo.computeBoundingBox();
+      const bb = geo.boundingBox;
+      const cy = (bb.min.y + bb.max.y) / 2, cz = (bb.min.z + bb.max.z) / 2;
+      let rMin = Infinity, rMax = -Infinity;
+      for (let i = 0; i < pos.count; i++) {
+        const r = Math.hypot(pos.getY(i) - cy, pos.getZ(i) - cz);
+        if (r < rMin) rMin = r;
+        if (r > rMax) rMax = r;
+      }
+      const span = Math.max(rMax - rMin, 1e-6);
+      const arr = new Float32Array(pos.count);
+      for (let i = 0; i < pos.count; i++) {
+        const r = Math.hypot(pos.getY(i) - cy, pos.getZ(i) - cz);
+        const t = 1 - (r - rMin) / span; // 1 at cone side → 0 at frame side
+        arr[i] = t * t;
+      }
+      geo.setAttribute('aFalloff', new THREE.BufferAttribute(arr, 1));
+      // clone before shader injection: Tripo exports share one blank material
+      // across all 15 meshes — injecting into the shared instance would bend
+      // every part, not just the surround
+      const mat = surround.material.clone();
+      surround.material = mat;
+      mat.onBeforeCompile = (shader) => {
+        shader.uniforms.uDisp = { value: 0 };
+        shader.uniforms.uAxis = { value: new THREE.Vector3(1, 0, 0) };
+        shader.vertexShader = 'attribute float aFalloff;\nuniform float uDisp;\nuniform vec3 uAxis;\n' +
+          shader.vertexShader.replace(
+            '#include <begin_vertex>',
+            '#include <begin_vertex>\n transformed += uAxis * (aFalloff * uDisp);',
+          );
+        mat.userData.shaderRef = shader;
+      };
+      mat.needsUpdate = true;
+      flexMats.push(mat);
+    }
   }
 
   // ---- camera orbit (touch + mouse) ----
@@ -205,7 +261,11 @@ export async function launchDemo() {
   let playing = false, soundOn = true;
   let nextNote = 0, step = 0, clockOrigin = 0;
   const kicks = []; // {t, v}
-  const now = () => (actx && soundOn ? actx.currentTime : performance.now() / 1000);
+  // Animation clock: use the audio clock ONLY when the context is actually
+  // running. A suspended/blocked context (autoplay policy, no audio device,
+  // headless) must never freeze the visuals — fall back to performance.now().
+  const audioClockOk = () => !!(actx && soundOn && actx.state === 'running');
+  const now = () => (audioClockOk() ? actx.currentTime : performance.now() / 1000);
 
   const kick = (t0, v) => {
     if (!actx || !soundOn) return;
@@ -230,8 +290,16 @@ export async function launchDemo() {
     master.gain.value = 0.9;
     master.connect(comp); comp.connect(actx.destination);
   };
+  let clockWasAudio = false;
   const scheduler = () => {
     if (!playing) return;
+    // clock source switched mid-play (context resumed/suspended) → rebase
+    const isAudio = audioClockOk();
+    if (isAudio !== clockWasAudio) {
+      kicks.length = 0;
+      nextNote = now() + 0.08;
+      clockWasAudio = isAudio;
+    }
     const t = now();
     while (nextNote < t + 0.16) {
       const v = PATTERN[step % PATTERN.length];
@@ -250,6 +318,7 @@ export async function launchDemo() {
     if (playing) return;
     playing = true;
     if (soundOn) { ensureCtx(); actx && actx.resume && actx.resume(); }
+    clockWasAudio = audioClockOk();
     nextNote = now() + 0.08;
     step = 0;
   };
@@ -271,7 +340,7 @@ export async function launchDemo() {
     soundOn = !soundOn;
     btnMute.classList.toggle('on', soundOn);
     if (soundOn) { ensureCtx(); actx && actx.resume && actx.resume(); }
-    if (playing) { kicks.length = 0; nextNote = now() + 0.08; } // rebase timeline after clock switch
+    if (playing) { clockWasAudio = audioClockOk(); kicks.length = 0; nextNote = now() + 0.08; } // rebase after clock switch
   });
   btnReset.addEventListener('click', () => {
     Object.assign(cam, camHome); interacting = false; applyCam();
@@ -305,6 +374,11 @@ export async function launchDemo() {
     const env = playing ? envAt(t) : 0;
     const disp = env * Math.sin(2 * Math.PI * CARRIER_HZ * t) * amp;
     if (cone) cone.position.x = restX + disp;
+    // surround inner edge follows the cone (same model-space units)
+    for (const mat of flexMats) {
+      const ref = mat.userData.shaderRef;
+      if (ref) ref.uniforms.uDisp.value = disp;
+    }
     if (t - lastHud > 0.1) {
       lastHud = t;
       hudX.textContent = (disp / (amp || 1) * 7).toFixed(1);
@@ -313,11 +387,27 @@ export async function launchDemo() {
   };
   loop();
 
+  // shareable deep link: /?autostart=1 boots straight into the beat
+  // (visuals only — audio still needs the WebAudio resume gesture, which
+  // the first tap anywhere provides)
+  if (new URLSearchParams(location.search).has('autostart')) {
+    startBeat();
+    btnBeat.classList.add('on');
+    // autostart has no user gesture → context may stay suspended; the first
+    // tap anywhere is the gesture that unlocks sound
+    const resumeOnce = () => {
+      if (actx && actx.state !== 'running') actx.resume().catch(() => {});
+      window.removeEventListener('pointerdown', resumeOnce);
+    };
+    window.addEventListener('pointerdown', resumeOnce);
+  }
+
   // ---- done ----
   overlay.style.transition = 'opacity .5s';
   overlay.style.opacity = '0';
   setTimeout(() => { overlay.remove(); }, 520);
   bar.hidden = false;
   setStatus('live · drag to orbit · pinch to zoom');
-  console.log('[sonivex-demo] preview online. cone =', cone ? cone.name : 'n/a');
+  console.log('[sonivex-demo] preview online. cone =', cone ? cone.name : 'n/a',
+    '· surround flex =', flexMats.length ? 'on' : 'off');
 }

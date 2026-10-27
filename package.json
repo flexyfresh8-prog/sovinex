@@ -1,7 +1,7 @@
 {
   "name": "sonivex-studio",
   "productName": "Sonivex Studio",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Sonivex Studio - Professional subwoofer design, audio visualization and virtual test bench. Design. Simulate. Validate.",
   "main": "dist-electron/main.js",
   "author": "Sonivex Engineering",

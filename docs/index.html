@@ -307,7 +307,7 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
       Launch live 3D preview
     </a>
   </div>
-  <p class="hero-note">v1.0.1 · installer + portable · 39/39 unit tests passing</p>
+  <p class="hero-note">v1.0.2 · installer + portable · 50/50 unit tests passing</p>
 
   <div class="sub" aria-hidden="true">
     <div class="glow"></div>
@@ -440,12 +440,12 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
   <div class="dl" data-reveal>
     <a class="dl-card" href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">
       <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
-      <span class="meta"><b>Sonivex-Studio-Setup-1.0.1.exe</b><span>installer · shortcuts · uninstaller · .svx association</span></span>
+      <span class="meta"><b>Sonivex-Studio-Setup-1.0.2.exe</b><span>installer · shortcuts · uninstaller · .svx association</span></span>
       <span class="go">GET</span>
     </a>
     <a class="dl-card" href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">
       <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg></span>
-      <span class="meta"><b>Sonivex-Studio-Portable-1.0.1.exe</b><span>single file · runs from USB · no installation</span></span>
+      <span class="meta"><b>Sonivex-Studio-Portable-1.0.2.exe</b><span>single file · runs from USB · no installation</span></span>
       <span class="go">GET</span>
     </a>
   </div>
@@ -497,6 +497,11 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
       console.error(err);
     });
   }, { once: true });
+  // deep link: /?autostart=1 boots the 3D preview straight into the beat
+  if (new URLSearchParams(location.search).has('autostart')) {
+    import('./demo.js').then((m) => m.launchDemo()).catch(() => {});
+    document.getElementById('stage')?.scrollIntoView({ block: 'center' });
+  }
 </script>
 </body>
 </html>
