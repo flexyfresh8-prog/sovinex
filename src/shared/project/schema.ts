@@ -3,6 +3,7 @@
  * Project files (.svx) are JSON; model/audio files are referenced, never modified.
  */
 import { ProjectData, PartInfo, MotionGroupConfig, PartMetrics } from '../types';
+import { defaultStudioConfig, clampConfig as clampStudio } from '../driver/studioConfig';
 
 export const SCHEMA_VERSION = 1;
 
@@ -26,8 +27,8 @@ export function defaultDriver() {
     magnetDiameterCM: 14.6,
     magnetHeightCM: 3.8,
     vcDiameterCM: 5.1,
-    coneColor: '#1A1A1A',
-    basketColor: '#2C2C2C',
+    coneColor: '#1a1a1a',
+    basketColor: '#3a3a3a',
     coneMaterial: 'composite' as const,
   };
 }
@@ -139,7 +140,10 @@ export function defaultProject(name = 'Untitled Project'): ProjectData {
     view: {
       projection: 'perspective', shading: 'shaded', explode: 0,
       showGrid: true, autoRotate: false,
+      viewMode: 'driver', explodeDistance: 120,
+      lighting: 'studio', cutaway: false, showDimensions: true,
     },
+    studio: defaultStudioConfig('subwoofer'),
     audio: { filePath: null, fileName: null },
   };
 }
@@ -163,6 +167,7 @@ export function sanitizeProject(raw: unknown): { ok: true; project: ProjectData 
       amp: { ...base.amp, ...(p.amp || {}) },
       analysis: { ...base.analysis, ...(p.analysis || {}) },
       view: { ...base.view, ...(p.view || {}) },
+      studio: clampStudio({ ...base.studio, ...((p as Partial<ProjectData>).studio || {}) }),
       audio: { ...base.audio, ...(p.audio || {}) },
       parts: Array.isArray(p.parts) && p.parts.length > 0
         ? p.parts.map((part, i) => ({

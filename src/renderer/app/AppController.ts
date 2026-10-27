@@ -7,15 +7,19 @@ import { useStore, hudBus, ConsoleLine } from '../store';
 import { Viewport, StandardView } from '../three/Viewport';
 import { MotionSystem } from '../three/MotionSystem';
 import { AudioEngine } from '../audio/AudioEngine';
-import { buildProceduralSubwoofer, AssemblyBuild } from '../three/ProceduralSubwoofer';
+import { DriverStudio } from '../three/driverStudio/buildDriver';
+import { buildEnclosure } from '../three/driverStudio/enclosure';
+import { DimensionGuides } from '../three/driverStudio/dimensions';
+import { setClipping, disposeMaterials } from '../three/driverStudio/materials';
+import { COMPONENT_LABELS, ComponentId } from '../../shared/driver/studioConfig';
 import { parseModel, ImportedPartNode, studioMaterialFor } from './importModel';
 import { autoClassify, applyKnownTripoLayout } from '../../shared/project/autoClassify';
 import {
   buildDriverModel, buildBoxModel, netVolumeL,
 } from '../../shared/physics/model';
 import { computeCurves, computeSummary } from '../../shared/physics/curves';
-import { ProjectData, PartInfo, PartMetrics, TrackAnalysis } from '../../shared/types';
-import { sanitizeProject, defaultPartsForTripo, defaultGroups } from '../../shared/project/schema';
+import { ProjectData, PartInfo, PartMetrics, TrackAnalysis, ViewMode } from '../../shared/types';
+import { sanitizeProject, defaultGroups, makeGroup } from '../../shared/project/schema';
 
 declare global {
   interface Window { sonivex: {
@@ -44,6 +48,11 @@ export class AppController {
   viewport!: Viewport;
   motion!: MotionSystem;
   audio = new AudioEngine();
+  private studio: DriverStudio | null = null;
+  private enclosure: THREE.Group | null = null;
+  private stand: THREE.Group | null = null;
+  private dimGuides: DimensionGuides | null = null;
+  private explodeCur = 0;
   private partObjects = new Map<string, THREE.Object3D>();
   private deformIds: string[] = [];
   private rafId = 0;
@@ -79,12 +88,18 @@ export class AppController {
 
     const info = await bridge().appInfo();
     store.getState().log('ok', `Sonivex Studio ${info.version} ready — Design. Simulate. Validate.`);
-    store.getState().log('info', 'Tip: import your Tripo model via Model → Import 3D Model (15 parts preserved; the cone is identified by geometry).');
+    store.getState().log('info', 'Driver Studio: 14 independently modeled components, fully customizable in the STUDIO tab.');
   }
 
   // ================= assembly management =================
 
   private registerParts(root: THREE.Group, parts: { id: string; name: string; sourceName: string; meshIndex: number; object: THREE.Object3D; mesh: THREE.Mesh; metrics: PartMetrics; hadRealMaterial?: boolean }[]): void {
+    // an imported model replaces the Driver Studio scene content
+    if (this.studio) this.studio.root.visible = false;
+    if (this.enclosure) this.enclosure.visible = false;
+    if (this.stand) this.stand.visible = false;
+    this.dimGuides?.clear();
+    this.motion.clearPartOffsets();
     this.partObjects.clear();
     this.deformIds = [];
     const projParts: PartInfo[] = parts.map((p) => ({
@@ -109,22 +124,238 @@ export class AppController {
 
   private currentRoot: THREE.Group | null = null;
 
-  async loadDefaultAssembly(): Promise<void> {
-    const { driver, box } = store.getState().project;
-    const build: AssemblyBuild = buildProceduralSubwoofer(driver, box);
-    this.currentRoot = build.root;
-    const parts = build.parts.map((p) => {
-      const mesh = p.mesh;
-      const metrics = this.metricsForObject(p.object);
-      return { id: p.id, name: p.name, sourceName: p.object.name, meshIndex: p.meshIndex, object: p.object, mesh, metrics, hadRealMaterial: true };
-    });
-    this.registerParts(build.root, parts);
-    store.getState().setModelMeta('procedural', true);
-    this.syncRolesToDefaults();
-    this.rebuildMotion();
+  // ================= Driver Studio assembly =================
+
+  /** Build (or rebuild from config) the modular procedural driver assembly. */
+  async loadDriverStudio(): Promise<void> {
+    const { studio: cfg, box, view } = store.getState().project;
+
+    if (!this.studio) {
+      this.studio = new DriverStudio(cfg);
+      this.viewport.scene.add(this.studio.root);
+      this.dimGuides = new DimensionGuides();
+      this.viewport.scene.add(this.dimGuides.group);
+      this.stand = this.buildStand();
+      this.viewport.scene.add(this.stand);
+    } else {
+      this.studio.rebuildAll(cfg);
+    }
+
+    this.buildEnclosureFor(box.wCM, box.hCM, box.dCM, box.type === 'ported', box.portDiameterCM, box.portCount);
+    this.registerStudioParts();
+    this.syncStudioMotion();
     this.recomputePhysics();
+    this.explodeCur = view.explode;
+    this.applyViewMode(view.viewMode, false);
     this.viewport.fitToModel();
-    store.getState().log('ok', 'Reference 15-part subwoofer assembly loaded. Part #3 = Cone (motion-ready).');
+    store.getState().setModelMeta('procedural', true);
+    const comps = this.studio.components.size;
+    store.getState().log('ok', `Driver Studio assembly ready — ${comps} independently modeled components (moving: cone + dust cap + voice coil + leads · flex: surround + spider).`);
+  }
+
+  /** Compatibility alias used by project restore paths. */
+  async loadDefaultAssembly(): Promise<void> {
+    return this.loadDriverStudio();
+  }
+
+  private buildEnclosureFor(wCM: number, hCM: number, dCM: number, ported: boolean, portD: number, portN: number): void {
+    if (this.enclosure) {
+      this.viewport.scene.remove(this.enclosure);
+      this.enclosure.traverse((c) => {
+        const m = c as THREE.Mesh;
+        if (m.isMesh) m.geometry?.dispose();
+      });
+      this.enclosure = null;
+    }
+    const flangeR = this.studio!.datums.flangeR;
+    const build = buildEnclosure(wCM, hCM, dCM, ported, portD, portN, flangeR);
+    this.enclosure = build.group;
+    this.enclosure.position.y = build.groundOffsetY;
+    this.viewport.scene.add(this.enclosure);
+  }
+
+  /** Minimal display stand so the driver-only view never floats unanchored. */
+  private buildStand(): THREE.Group {
+    const g = new THREE.Group();
+    g.name = 'DisplayStand';
+    const mat = new THREE.MeshStandardMaterial({ color: 0x131313, roughness: 0.55, metalness: 0.35 });
+    const cradle = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.014, 12, 64).rotateX(Math.PI / 2), mat);
+    cradle.name = 'stand_cradle';
+    cradle.position.z = -0.075;
+    cradle.rotation.x = Math.PI / 2 - 0.0;
+    g.add(cradle);
+    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.11, 0.34, 32), mat);
+    pedestal.name = 'stand_pedestal';
+    pedestal.position.y = -0.24;
+    pedestal.castShadow = true;
+    g.add(pedestal);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.16, 0.022, 48), mat);
+    base.name = 'stand_base';
+    base.position.y = -0.41;
+    base.receiveShadow = true;
+    g.add(base);
+    return g;
+  }
+
+  private registerStudioParts(): void {
+    if (!this.studio) return;
+    this.partObjects.clear();
+    this.deformIds = [];
+    const parts: PartInfo[] = [];
+    let idx = 0;
+    this.studio.components.forEach((c) => {
+      this.partObjects.set(c.id, c.object);
+      const metrics = this.metricsForObject(c.object);
+      parts.push({
+        id: c.id,
+        name: COMPONENT_LABELS[c.id as ComponentId] ?? c.name,
+        sourceName: `procedural/${c.id}`,
+        meshIndex: idx,
+        role: c.role === 'moving' ? 'moving' : c.role === 'flex' ? 'deformable' : 'static',
+        visible: true,
+        locked: false,
+        enabledForMotion: c.role === 'moving',
+        groupId: c.role === 'moving' ? 'g1' : null,
+        metrics,
+      });
+      if (c.role === 'flex') this.deformIds.push(c.id);
+      idx++;
+    });
+    store.getState().setParts(parts);
+    this.currentRoot = this.studio.root;
+    this.viewport.setModel(this.studio.root, this.partObjects, this.studio.pickables());
+    parts.forEach((p) => this.viewport.setPartVisible(p.id, true));
+  }
+
+  private syncStudioMotion(): void {
+    if (!this.studio) return;
+    const { driver } = store.getState().project;
+    const moving = this.studio.movingPartIds();
+    const cone = this.studio.components.get('cone');
+    // capture rest poses in the ASSEMBLED pose (no explode) so offsets don't
+    // stack — explode is re-applied through the offset map below
+    this.studio.applyExplode(0);
+    const center = cone ? cone.object.position.clone() : new THREE.Vector3();
+    const group = makeGroup('g1', 'Cone Assembly', moving);
+    group.axis = 'z';
+    group.pivot = [center.x, center.y, center.z];
+    group.mode = 'D';
+    group.enabled = true;
+    store.getState().setGroups([group]);
+    this.deformIds = this.studio.flexPartIds();
+    this.motion.rebuild([group], this.partObjects, this.deformIds, driver.xmaxMM / 1000);
+    this.motion.setAxis(group.id, 'z');
+    this.motion.setPartOffsets(this.explodeOffsetMap());
+    this.studio.applyExplode(this.explodeCur);
+    this.viewport.setSelected(store.getState().selection);
+  }
+
+  private explodeOffsetMap(): Map<THREE.Object3D, THREE.Vector3> {
+    const map = new Map<THREE.Object3D, THREE.Vector3>();
+    if (!this.studio) return map;
+    const distScale = store.getState().project.view.explodeDistance / 120;
+    this.studio.components.forEach((c) => {
+      map.set(c.object, c.explodeOffset.clone().multiplyScalar(distScale));
+    });
+    return map;
+  }
+
+  /** Live customization: patch the studio config and rebuild affected parts. */
+  applyStudioConfig(patch: Partial<ProjectData['studio']>): void {
+    if (!this.studio) return;
+    store.getState().patchStudio(patch);
+    const cfg = store.getState().project.studio;
+    const result = this.studio.update(cfg);
+    if (result.rebuilt.length > 0) {
+      // refresh registered metrics + motion rests, keep selection/visibility
+      this.registerStudioParts();
+      this.syncStudioMotion();
+      const view = store.getState().project.view;
+      if (view.viewMode === 'system') this.applyViewMode('system', false);
+      this.refreshSelection();
+    }
+  }
+
+  /** Replace the entire studio config (driver class preset / reset). */
+  applyStudioPreset(cfg: ProjectData['studio']): void {
+    if (!this.studio) return;
+    store.getState().setStudio(cfg);
+    this.studio.rebuildAll(cfg);
+    this.buildEnclosureFor(
+      store.getState().project.box.wCM, store.getState().project.box.hCM, store.getState().project.box.dCM,
+      store.getState().project.box.type === 'ported', store.getState().project.box.portDiameterCM, store.getState().project.box.portCount,
+    );
+    this.registerStudioParts();
+    this.syncStudioMotion();
+    this.refreshSelection();
+    this.viewport.fitToModel();
+    store.getState().log('ok', 'Driver geometry rebuilt from the selected configuration.');
+  }
+
+  // ================= view modes =================
+
+  /**
+   * Complete System / Driver Only / Driver Exploded / Component Focus.
+   * Driver Only removes the enclosure from rendering entirely (not ghosted).
+   */
+  applyViewMode(mode: ViewMode, frameCamera = true): void {
+    if (!this.studio) return;
+    const view = store.getState().project.view;
+    if (view.viewMode !== mode) store.getState().patchView({ viewMode: mode });
+
+    // enclosure: visible only in Complete System
+    if (this.enclosure) this.enclosure.visible = mode === 'system';
+    // stand: anchor for the standalone driver views
+    if (this.stand) this.stand.visible = mode !== 'system';
+    // exploded factor: 1 in exploded mode (user slider scales the distance)
+    store.getState().patchView({ explode: mode === 'exploded' ? (view.explode || 1) : 0 });
+
+    // visibility of parts (respect hidden flags + focus isolation)
+    this.refreshSelection();
+
+    if (frameCamera) {
+      if (mode === 'focus') {
+        const sel = store.getState().selection[0];
+        if (sel) this.viewport.fitToObject(sel);
+        else this.viewport.fitToModel();
+      } else {
+        this.viewport.fitToModel();
+      }
+    }
+  }
+
+  /** One-click "Assemble Driver" — animate every part back to its seat. */
+  assembleDriver(): void {
+    store.getState().patchView({ explode: 0 });
+    if (store.getState().project.view.viewMode === 'exploded') this.applyViewMode('driver');
+    store.getState().log('ok', 'Driver assembled — all components returned to their correct positions.');
+  }
+
+  setCutaway(on: boolean, offset = 0): void {
+    if (on) {
+      const plane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), offset);
+      setClipping(plane);
+    } else {
+      setClipping(null);
+    }
+    store.getState().patchView({ cutaway: on });
+  }
+
+  updateDimensionGuides(): void {
+    if (!this.dimGuides || !this.studio) return;
+    const { selection, project } = store.getState();
+    this.dimGuides.clear();
+    if (!project.view.showDimensions || selection.length !== 1) return;
+    const comp = this.studio.components.get(selection[0] as ComponentId);
+    if (!comp) return;
+    const units = project.units;
+    const box = new THREE.Box3().setFromObject(comp.object);
+    const size = box.getSize(new THREE.Vector3());
+    const mm = (m: number) => m * 1000;
+    const fmt = (v: number) => units === 'metric' ? `Ø ${v.toFixed(0)} mm` : `Ø ${(v / 25.4).toFixed(2)}″`;
+    const fmtD = (v: number) => units === 'metric' ? `${v.toFixed(0)} mm` : `${(v / 25.4).toFixed(2)}″`;
+    const radial = Math.max(size.x, size.y);
+    this.dimGuides.show(comp.object, 'z', fmt(mm(radial)), fmtD(mm(size.z)));
   }
 
   private metricsForObject(obj: THREE.Object3D): PartMetrics {
@@ -136,55 +367,6 @@ export class AppController {
       sizeM: [size.x, size.y, size.z], centerM: [center.x, center.y, center.z],
       radiusMaxM: size.length() / 2, symmetryAxis: 'z', symmetryCV: 1, rMinOverRMax: 0,
     };
-  }
-
-  private syncRolesToDefaults(): void {
-    // Fallback for parts still marked 'unknown'. Procedural layout: p2 = cone (moving),
-    // p3 = cap (moving), p5 = surround (deformable). Tripo 15-part layout (geometry-verified):
-    // p3 = cone (moving), p2 = surround (deformable), p4 = motor cap (static).
-    const parts = store.getState().project.parts;
-    const isTripo = parts.length === 15 && parts.some((p) => /^tripo_part_\d+$/.test(p.sourceName));
-    const roleFor = (id: string): PartInfo['role'] => {
-      if (isTripo) {
-        if (id === 'p3') return 'moving';
-        if (id === 'p2') return 'deformable';
-        return 'static';
-      }
-      if (id === 'p2') return 'moving';
-      if (id === 'p3') return 'moving';
-      if (id === 'p5') return 'deformable';
-      return 'static';
-    };
-    const updated = parts.map((p, i) => ({
-      ...p,
-      role: p.role === 'unknown' ? roleFor(p.id) : p.role,
-      name: p.name || `Part ${i + 1}`,
-    }));
-    store.getState().setParts(updated);
-    // default group
-    const groups = store.getState().project.groups;
-    if (groups.length === 0) {
-      const cone = updated.find((p) => p.role === 'moving');
-      if (cone) store.getState().setGroups(defaultGroups().map((g) => ({ ...g, partIds: updated.filter((p) => p.role === 'moving').map((p) => p.id) })));
-    } else {
-      const movingIds = updated.filter((p) => p.role === 'moving').map((p) => p.id);
-      if (movingIds.length && !groups.some((g) => g.partIds.length)) {
-        store.getState().updateGroup(groups[0].id, { partIds: movingIds });
-      }
-    }
-    // set group pivot to cone center
-    const cone = updated.find((p) => p.role === 'moving');
-    if (cone) {
-      const c = cone.metrics.centerM;
-      const groups2 = store.getState().project.groups;
-      if (groups2[0]) {
-        store.getState().updateGroup(groups2[0].id, {
-          pivot: [c[0], c[1], c[2]],
-          axis: cone.metrics.symmetryCV < 1 ? (cone.metrics.symmetryAxis as 'x' | 'y' | 'z') : 'z',
-        });
-      }
-    }
-    this.rebuildMotion();
   }
 
   async importModel(): Promise<void> {
@@ -429,9 +611,33 @@ export class AppController {
       this.rafId = requestAnimationFrame(tick);
       const dt = Math.min((t - this.lastT) / 1000, 0.1) || 0.016;
       this.lastT = t;
+      this.updateExplode(dt);
       this.updateMotion(dt);
     };
     this.rafId = requestAnimationFrame(tick);
+  }
+
+  /** Smooth exploded-view animation toward the active mode's target. */
+  private updateExplode(dt: number): void {
+    if (!this.studio) return;
+    const view = store.getState().project.view;
+    const target = view.viewMode === 'exploded' ? view.explode : 0;
+    const k = 1 - Math.exp(-dt * 7);
+    this.explodeCur += (target - this.explodeCur) * k;
+    if (Math.abs(target - this.explodeCur) < 0.0005) this.explodeCur = target;
+    this.studio.applyExplode(this.explodeCur);
+  }
+
+  /** Refresh the exploded offsets (after distance slider changes). */
+  refreshExplodeOffsets(): void {
+    if (!this.studio) return;
+    this.motion.setPartOffsets(this.explodeOffsetMap());
+    // flex parts are offset too — reposition them directly
+    const distScale = store.getState().project.view.explodeDistance / 120;
+    this.studio.components.forEach((c) => {
+      if (c.role !== 'flex') return;
+      c.object.position.copy(c.assembledPos).addScaledVector(c.explodeOffset, this.explodeCur * distScale);
+    });
   }
 
   private updateMotion(dt: number): void {
@@ -535,6 +741,9 @@ export class AppController {
     this.viewport.setExplode(view.explode);
     this.viewport.setGridVisible(view.showGrid);
     this.viewport.setAutoRotate(view.autoRotate);
+    this.viewport.setLighting(view.lighting);
+    this.setCutaway(view.cutaway);
+    this.applyViewMode(view.viewMode, false);
   }
 
   standardView(v: StandardView): void { this.viewport.setStandardView(v); }
@@ -546,9 +755,14 @@ export class AppController {
 
   refreshSelection(): void {
     const { selection, project } = store.getState();
-    project.parts.forEach((p) => this.viewport.setPartVisible(p.id, p.visible));
+    const focusMode = project.view.viewMode === 'focus' && selection.length > 0;
+    project.parts.forEach((p) => {
+      const visible = p.visible && (!focusMode || selection.includes(p.id));
+      this.viewport.setPartVisible(p.id, visible);
+    });
     this.viewport.setSelected(selection);
     this.viewport.setShading(project.view.shading);
+    this.updateDimensionGuides();
   }
 
   // ================= persistence =================
@@ -692,11 +906,11 @@ export class AppController {
     const warn = (summary?.warnings ?? []).map((w) => `<li>${w}</li>`).join('') || '<li>No warnings.</li>';
     const html = `<!doctype html><html><head><meta charset="utf-8"><style>
       body{font-family:'Segoe UI',Arial,sans-serif;color:#16181d;margin:36px;}
-      h1{font-size:22px;letter-spacing:.5px;border-bottom:3px solid #D4D4D4;padding-bottom:8px;}
-      h2{font-size:15px;color:#8A8A8A;margin-top:22px;}
+      h1{font-size:22px;letter-spacing:.5px;border-bottom:3px solid #3a3a3a;padding-bottom:8px;}
+      h2{font-size:15px;color:#8a8a8a;margin-top:22px;}
       table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
-      td{border:1px solid #D6D6D6;padding:5px 8px;} td:first-child{width:45%;color:#4E4E4E;}
-      ul{font-size:12px;} .muted{color:#7E7E7E;font-size:11px;}
+      td{border:1px solid #d8dde3;padding:5px 8px;} td:first-child{width:45%;color:#4a5361;}
+      ul{font-size:12px;} .muted{color:#7a828e;font-size:11px;}
     </style></head><body>
       <h1>Sonivex Studio — Simulation Report</h1>
       <p class="muted">Project: ${project.name} · Generated ${new Date().toLocaleString()} · Design. Simulate. Validate.</p>
@@ -743,7 +957,7 @@ export class AppController {
         'Time over Xmax': `${overXmaxPct.toFixed(1)} %`,
       })}</table>
       <h2>Warnings</h2><ul>${warn}</ul>
-      <h2>Limitations</h2><p style="font-size:11px;color:#606060">Excursion/SPL values are lumped-parameter estimates derived from the entered Thiele/Small parameters and the track's spectral content scaled to the set amplifier voltage. They are engineering estimates, not measurements of a physical system. For validated displacement, measure with a calibration rig.</p>
+      <h2>Limitations</h2><p style="font-size:11px;color:#5a626e">Excursion/SPL values are lumped-parameter estimates derived from the entered Thiele/Small parameters and the track's spectral content scaled to the set amplifier voltage. They are engineering estimates, not measurements of a physical system. For validated displacement, measure with a calibration rig.</p>
     </body></html>`;
     const r = await bridge().printToPDF(html);
     if (r.error) { store.getState().log('error', `PDF export failed: ${r.error}`); return; }
@@ -775,6 +989,9 @@ export class AppController {
     window.clearTimeout(this.reanalysisTimer);
     this.audio.dispose();
     this.motion.dispose();
+    this.dimGuides?.dispose();
+    this.studio?.dispose();
+    disposeMaterials();
     this.viewport.dispose();
   }
 }

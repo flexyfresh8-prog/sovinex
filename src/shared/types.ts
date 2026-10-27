@@ -2,6 +2,15 @@
  * Sonivex Studio - shared type definitions
  * Used by main process, renderer and unit tests.
  */
+import { DriverStudioConfig } from './driver/studioConfig';
+
+export type { DriverStudioConfig };
+
+/** Studio view mode — Complete System / Driver Only / Exploded / Component Focus */
+export type ViewMode = 'system' | 'driver' | 'exploded' | 'focus';
+
+/** Viewport lighting presets */
+export type LightingPreset = 'studio' | 'inspection' | 'presentation';
 
 /** Component role classification */
 export type PartRole = 'static' | 'moving' | 'deformable' | 'unknown';
@@ -134,7 +143,18 @@ export interface ProjectData {
     explode: number;
     showGrid: boolean;
     autoRotate: boolean;
+    /** Complete System / Driver Only / Exploded / Component Focus */
+    viewMode: ViewMode;
+    /** exploded-view separation distance in mm */
+    explodeDistance: number;
+    lighting: LightingPreset;
+    /** half-model cutaway clip plane */
+    cutaway: boolean;
+    /** measurement guides for the selected component */
+    showDimensions: boolean;
   };
+  /** modular driver geometry (single source of truth for the 3D model) */
+  studio: DriverStudioConfig;
   audio: {
     filePath: string | null;
     fileName: string | null;

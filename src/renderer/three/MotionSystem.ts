@@ -38,6 +38,8 @@ interface GroupRuntime {
   softLimitM: number;
 }
 
+const ZERO_V3 = new THREE.Vector3();
+
 function axisVec(axis: 'x' | 'y' | 'z'): THREE.Vector3 {
   return new THREE.Vector3(axis === 'x' ? 1 : 0, axis === 'y' ? 1 : 0, axis === 'z' ? 1 : 0);
 }
@@ -61,6 +63,12 @@ export class MotionSystem {
   private partObjects = new Map<string, THREE.Object3D>();
   private deformPartIds = new Set<string>();
   private flexPartIds = new Set<string>();
+  /**
+   * Static per-part offsets (exploded view). Applied ON TOP of rest poses so
+   * rigid members ride at rest + offset + displacement and flex parts stay
+   * untouched (their group's exploded neighbors are what they glue to).
+   */
+  private offsets = new Map<THREE.Object3D, THREE.Vector3>();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -107,6 +115,15 @@ export class MotionSystem {
       g.flex.push({ obj, mats: this.collectMats(obj), axisAtBuild: g.config.axis });
       this.flexPartIds.add(pid);
     }
+  }
+
+  /** Replace the static exploded-view offsets for rigid members. */
+  setPartOffsets(map: Map<THREE.Object3D, THREE.Vector3>): void {
+    this.offsets = map;
+  }
+
+  clearPartOffsets(): void {
+    this.offsets = new Map();
   }
 
   /** Group whose rigid members sit closest (axially) to the deformable. */
@@ -248,10 +265,11 @@ export class MotionSystem {
 
     const disp = axisVec(g.config.axis).multiplyScalar(g.smoothed);
 
-    // rigid members translate with the group
+    // rigid members translate with the group (rest + explode offset + motion)
     for (const obj of g.members) {
       const rest = g.restPositions.get(obj)!;
-      obj.position.copy(rest).add(disp);
+      const off = this.offsets.get(obj) ?? ZERO_V3;
+      obj.position.copy(rest).add(off).add(disp);
     }
 
     // flex members: inner edge (falloff=1, cone side) follows the cone exactly;
@@ -265,11 +283,14 @@ export class MotionSystem {
     return g.smoothed;
   }
 
-  /** Hard reset to rest pose + zero smoothing state. */
+  /** Hard reset to rest pose + zero smoothing state (explode offsets kept). */
   resetAll(): void {
     this.groups.forEach((g) => {
       g.smoothed = 0;
-      g.restPositions.forEach((rest, obj) => obj.position.copy(rest));
+      g.restPositions.forEach((rest, obj) => {
+        const off = this.offsets.get(obj) ?? ZERO_V3;
+        obj.position.copy(rest).add(off);
+      });
       for (const f of g.flex) {
         for (const mat of f.mats) {
           const ref = (mat as THREE.Material & { userData: { shaderRef?: { uniforms: Record<string, { value: unknown }> } } }).userData.shaderRef;

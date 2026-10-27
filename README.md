@@ -1,16 +1,14 @@
 # Sonivex Studio
 
-**v1.1.0 — Black & White Edition.** Pure monochrome UI, pure monochrome materials, and a fully procedural ultra-detail 15-part reference subwoofer built in code (no bundled GLB). Import pipeline still accepts GLB/GLTF/OBJ/FBX.
-
 **Design. Simulate. Validate.**
 
-Professional desktop software for subwoofer design, audio-driven visualization and virtual testing. Import your Tripo AI model, assign parts, play your music and watch the physics — excursion, SPL, port velocity, Xmax usage — computed in real time from real electro-acoustic models.
+Professional desktop software for subwoofer design, audio-driven visualization and virtual testing. The driver is **generated entirely in code** — a fully procedural, ultra-detailed modular assembly — play your music and watch the physics: excursion, SPL, port velocity, Xmax usage, computed in real time from real electro-acoustic models. Strict black & white engineering workspace.
 
 [![Build Windows](https://github.com/flexyfresh8-prog/sovinex/actions/workflows/build-windows.yml/badge.svg)](https://github.com/flexyfresh8-prog/sovinex/actions/workflows/build-windows.yml)
-![tests](https://img.shields.io/badge/unit_tests-39%2F39-brightgreen)
+![tests](https://img.shields.io/badge/unit_tests-64%2F64-brightgreen)
 ![platform](https://img.shields.io/badge/platform-Windows_x64-blue)
 
-**Web:** [flexyfresh8-prog.github.io/sovinex](https://flexyfresh8-prog.github.io/sovinex/) — mobile-friendly site with a live 3D preview of the 15-part model.
+**Web:** [flexyfresh8-prog.github.io/sovinex](https://flexyfresh8-prog.github.io/sovinex/) — mobile-friendly site with a live 3D preview of the procedural driver (no model download; the geometry is generated on-device by the same engine as the desktop app).
 
 ---
 
@@ -20,8 +18,8 @@ Grab the latest build from **[Releases](https://github.com/flexyfresh8-prog/sovi
 
 | File | Purpose |
 |------|---------|
-| `Sonivex-Studio-Setup-1.1.0.exe` | Standard installer (Start Menu + Desktop shortcuts, uninstaller, `.svx` file association) |
-| `Sonivex-Studio-Portable-1.1.0.exe` | Portable single-file build — run from anywhere, no installation |
+| `Sonivex-Studio-Setup-1.2.0.exe` | Standard installer (Start Menu + Desktop shortcuts, uninstaller, `.svx` file association) |
+| `Sonivex-Studio-Portable-1.2.0.exe` | Portable single-file build — run from anywhere, no installation |
 | `checksums-sha256.txt` | SHA-256 checksums for both executables |
 
 Every push to `main` also produces downloadable build artifacts on the [Actions page](https://github.com/flexyfresh8-prog/sovinex/actions?query=branch%3Amain).
@@ -38,20 +36,24 @@ Every push to `main` also produces downloadable build artifacts on the [Actions 
 
 ## Feature overview
 
-### 1. Model import (GLB / GLTF / OBJ / FBX)
-- Every mesh in the file is preserved as its own part — **nothing is merged, deleted or replaced**; the source file is never modified.
-- Scene hierarchy, mesh names and original transforms are read; each part gets a stable internal ID (`p0…pN`) and a geometry inspection record (vertices, triangles, bounding box, symmetry axis, ring-ness metrics).
-- **Tripo 15-part subwoofer support:** when a 15-part model is imported, part **#3 is pre-assigned as the Cone** (per specification), with the rest auto-classified from geometry — all assignments are user-editable and persisted.
-- If the source model has blank materials (typical for Tripo exports), Sonivex applies **studio PBR materials** automatically (composite-weave cone, rubber surround, brushed-aluminum motor, piano-black cabinet). Original materials are respected whenever they contain real data ("Model → Apply Studio Materials" re-applies enhancement on demand).
-- Geometry smoothing: vertices are welded (10 µm tolerance) and normals recomputed for a clean shaded look.
+### 1. Procedural Driver Studio (v1.2.0)
+The driver is **generated in code** — no downloaded mesh. 14 independently modeled components are assembled with real mechanical relationships from one centralized configuration: cone (curved lathe shell + stiffening ribs + neck collar), dust cap (dome / shallow / flat / inverted), half-roll surround (rubber / foam), voice coil + former (visible winding layers, collar, lead-outs), corrugated fabric spider, ferrite or neodymium magnet stack, steel top & bottom plates, vented center pole, cast/stamped basket with real window openings and spokes, mounting gasket, terminal block or cup, tinsel leads, and hex mounting hardware.
 
-### 2. Reference assembly
-A beautiful 15-part procedural subwoofer (same part numbering — part #3 = cone) is built in at first launch, so the workspace is immediately alive: PBR materials, environment lighting, soft shadows, bloom, hover/selection outlines, explode view, six standard camera views, orthographic/perspective toggle, wireframe and X-ray shading.
+**Roles are assigned at construction time**: cone + dust cap + voice coil + leads are the moving group; the surround and spider are flex-only deformables (vertex-shader bend — inner edge glued to the cone, outer edge bolted to the frame); everything else never moves. The same engine drives the GitHub Pages demo (bundled as `docs/driver-model.js`).
 
-### 3. Part customization (change sizes and stuff)
-**Driver tab:** effective piston diameter, Fs, Qes, Qms, Vas, Re, Le, Xmax, rated power, cone depth, surround width, dust-cap radius/height, magnet diameter/height, cone material (paper / composite / aluminum / kevlar), amplifier voltage and load impedance. Geometry edits regenerate the 3D assembly live (for the reference model) and immediately recompute all physics.
+### 2. View modes & inspection
+- **Complete System** — the driver seated in its enclosure (ported or sealed box with baffle, cutout, ports, terminal cup, feet)
+- **Driver Only** — the enclosure is removed from the scene entirely (never just ghosted); the driver is framed on its display stand
+- **Driver Exploded** — animated separation along the drive axis with adjustable distance (40–300 mm); parts stay selectable while exploded
+- **Component Focus** — isolate one component and frame it
+- Plus: front/back/side/top/bottom/ISO camera presets, fit-to-object, wireframe, X-ray, **cutaway clipping plane**, measurement guides with dimension labels, three lighting presets (studio / inspection / presentation), orbit/zoom/pan, one-click **Assemble Driver**
 
-**Box tab:** sealed or ported, external W×H×D, wall thickness, damping fill, port diameter/length/count. Net volume (minus driver and port displacement) is derived automatically.
+### 3. Component customization (STUDIO tab)
+Every dimension of every component is live-editable through the shared studio config (single source of truth): frame diameter; cone diameter/depth/profile/thickness/neck; dust-cap size & shape; surround inner/outer Ø, roll height/width/thickness & profile; voice-coil Ø, winding height/thickness/layers, former height; magnet Ø / layer height / layer count; plate thicknesses; pole diameter & extension; basket depth/spokes/spoke width/flange/mounting holes; spider Ø / corrugation count & depth / rest position; gasket; terminal style; screws and finish colors (grayscale swatches).
+
+Sliders for quick adjustment, numeric inputs for precise measurements, **mm ↔ inch** toggle, per-component visibility/isolation in the Assembly Explorer, and **live validation** — coil-vs-neck interference, pole gap, surround seal, spider clearance, Xmax over-hang — with warnings as you drag. Updates are dependency-aware: changing one dimension rebuilds exactly the parts it affects and every neighbor stays seated.
+
+**Driver tab (physics):** effective piston diameter, Fs, Qes, Qms, Vas, Re, Le, Xmax, rated power, amplifier voltage and load impedance — the Thiele/Small layer stays fully editable alongside the geometry layer. **Box tab:** sealed or ported, external W×H×D, wall thickness, damping fill, port diameter/length/count; net volume is derived automatically.
 
 ### 4. Audio import & playback
 MP3 / WAV / FLAC / OGG (file dialog or drag-and-drop onto the window), full transport (play / pause / stop / seek / loop / volume), waveform display with playhead and click-to-seek, live log-spaced spectrum with SUB / BASS / UP-BASS / MID markers, and four built-in synthesized test signals (sine sweep, kick pattern, 40 Hz tone, bass demo loop) — no external assets needed.
@@ -98,8 +100,8 @@ Frequency-response plots (SPL, excursion vs Xmax, impedance with ported double-h
 
 ```bash
 npm install
-npm test          # 39 unit tests (physics, FFT/analysis, schema)
-npm run dist      # → release/Sonivex-Studio-Setup-1.1.0.exe + Portable
+npm test          # 64 unit tests (physics, FFT/analysis, schema, motion contract, driver studio)
+npm run dist      # → release/Sonivex-Studio-Setup-1.2.0.exe + Portable
 ```
 
 Requirements: Node.js 20+, Python (only for the NSIS template patcher). Windows builds work **on Linux/macOS hosts without wine** — see `scripts/patch-nsis-templates.py` (installs the uninstaller at install time via `WriteUninstaller`) and `scripts/patch-win-exe.mjs` (pure-JS icon/version embedding via `resedit`). CI runs the same pipeline natively on `windows-latest` (`.github/workflows/build-windows.yml`) on every push and attaches installers to GitHub Releases on version tags.

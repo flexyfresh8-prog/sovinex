@@ -37,14 +37,14 @@ class GaugeRenderer {
       // danger zone
       const dzX = barW * Math.min(danger, 1.15);
       if (danger <= 1.15) {
-        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.fillStyle = 'rgba(239,68,68,0.18)';
         roundRect(ctx, dzX, y, Math.max(barW - dzX, 0), barH, 3.5); ctx.fill();
       }
       // fill gradient
       const over = frac > danger;
       const grad = ctx.createLinearGradient(0, y, barW, y);
-      if (over) { grad.addColorStop(0, '#FFFFFF'); grad.addColorStop(1, '#FFFFFF'); }
-      else { grad.addColorStop(0, '#8F8F8F'); grad.addColorStop(1, '#FFFFFF'); }
+      if (over) { grad.addColorStop(0, '#e8e8e8'); grad.addColorStop(1, '#ffffff'); }
+      else { grad.addColorStop(0, '#6a6a6a'); grad.addColorStop(1, '#e8e8e8'); }
       ctx.fillStyle = grad;
       if (frac > 0.005) { roundRect(ctx, 0, y, Math.min(barW * frac, barW), barH, 3.5); ctx.fill(); }
       // peak tick
@@ -57,7 +57,7 @@ class GaugeRenderer {
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillText(label, 0, 0);
       ctx.font = '700 11px "Cascadia Code", Consolas, monospace';
-      ctx.fillStyle = over ? '#FFFFFF' : '#E8E8E8';
+      ctx.fillStyle = over ? '#f87171' : '#e2e8f0';
       ctx.textAlign = 'right';
       ctx.fillText(v.toFixed(decimals) + ' ' + unit, w, 0);
     } else {
@@ -68,17 +68,17 @@ class GaugeRenderer {
       ctx.strokeStyle = 'rgba(160,160,160,0.14)';
       ctx.beginPath(); ctx.arc(cx, cy, r, start, end); ctx.stroke();
       const dangerA = start + (end - start) * Math.min(danger / 1.15, 1);
-      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.strokeStyle = 'rgba(239,68,68,0.35)';
       ctx.beginPath(); ctx.arc(cx, cy, r, dangerA, end); ctx.stroke();
       const over = frac > danger;
-      ctx.strokeStyle = over ? '#FFFFFF' : '#FFFFFF';
-      if (over) { ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = 8; }
-      else { ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = frac > 0.02 ? 6 : 0; }
+      ctx.strokeStyle = over ? '#ffffff' : '#e8e8e8';
+      if (over) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8; }
+      else { ctx.shadowColor = '#e8e8e8'; ctx.shadowBlur = frac > 0.02 ? 6 : 0; }
       ctx.beginPath(); ctx.arc(cx, cy, r, start, start + (end - start) * frac); ctx.stroke();
       ctx.shadowBlur = 0;
       // center text
       ctx.font = '700 15px "Cascadia Code", Consolas, monospace';
-      ctx.fillStyle = over ? '#FFFFFF' : '#E8E8E8';
+      ctx.fillStyle = over ? '#f87171' : '#e2e8f0';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(v.toFixed(decimals), cx, cy - 4);
       ctx.font = '9px "Segoe UI", sans-serif';

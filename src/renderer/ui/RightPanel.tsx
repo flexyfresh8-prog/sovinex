@@ -9,6 +9,7 @@ import { controller } from '../app/AppController';
 import { Btn, Chip, NumberField, Row, Section, SelectField, Slider, Toggle } from './primitives';
 import { CanvasPlot, RefLine, Series } from './CanvasPlot';
 import { MotionMode } from '../../shared/types';
+import { StudioPanel } from './StudioPanel';
 
 // ================= Parts tab =================
 const PartsPanel: React.FC = () => {
@@ -428,6 +429,7 @@ const ResultsPanel: React.FC = () => {
 // ================= container =================
 const tabs = [
   { id: 'parts', label: 'PARTS' },
+  { id: 'studio', label: 'STUDIO' },
   { id: 'driver', label: 'DRIVER' },
   { id: 'box', label: 'BOX' },
   { id: 'motion', label: 'MOTION' },
@@ -446,6 +448,7 @@ export const RightPanel: React.FC = () => {
       </div>
       <div className="right-panel-body">
         {tab === 'parts' && <PartsPanel />}
+        {tab === 'studio' && <StudioPanel />}
         {tab === 'driver' && <DriverPanel />}
         {tab === 'box' && <BoxPanel />}
         {tab === 'motion' && <MotionPanel />}

@@ -1,7 +1,7 @@
 {
   "name": "sonivex-studio",
   "productName": "Sonivex Studio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Sonivex Studio - Professional subwoofer design, audio visualization and virtual test bench. Design. Simulate. Validate.",
   "main": "dist-electron/main.js",
   "author": "Sonivex Engineering",
@@ -9,6 +9,7 @@
   "private": true,
   "scripts": {
     "build": "vite build && node scripts/build-main.mjs",
+    "build:docs-engine": "esbuild src/renderer/three/driverStudio/docsEntry.ts --bundle --format=esm --target=es2020 --minify --external:three --outfile=docs/driver-model.js",
     "dist": "npm run build && node scripts/dist-win.mjs",
     "dist:dir": "npm run build && electron-builder --win --x64 --dir",
     "test": "vitest run",

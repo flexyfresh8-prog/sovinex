@@ -37,7 +37,7 @@ export interface StoreState {
   hud: HudData;
   consoleLines: ConsoleLine[];
   importStage: { active: boolean; pct: number; stage: string };
-  rightTab: 'parts' | 'driver' | 'box' | 'motion' | 'results';
+  rightTab: 'parts' | 'driver' | 'studio' | 'box' | 'motion' | 'results';
   bottomTab: 'console' | 'waveform' | 'spectrum' | 'physics';
   projectFilePath: string | null;
   dirty: boolean;
@@ -54,6 +54,9 @@ export interface StoreActions {
   patchAmp: (patch: Partial<ProjectData['amp']>) => void;
   patchView: (patch: Partial<ProjectData['view']>) => void;
   patchAnalysisCfg: (patch: Partial<ProjectData['analysis']>) => void;
+  patchStudio: (patch: Partial<ProjectData['studio']>) => void;
+  /** replace the whole studio config (preset apply / reset) */
+  setStudio: (cfg: ProjectData['studio']) => void;
   setParts: (parts: ProjectData['parts']) => void;
   updatePart: (id: string, patch: Partial<ProjectData['parts'][number]>) => void;
   setGroups: (groups: ProjectData['groups']) => void;
@@ -111,6 +114,8 @@ export const useStore = create<StoreState & StoreActions>((set) => ({
   patchAmp: (patch) => set((s) => ({ project: { ...s.project, amp: { ...s.project.amp, ...patch } }, dirty: true })),
   patchView: (patch) => set((s) => ({ project: { ...s.project, view: { ...s.project.view, ...patch } }, dirty: true })),
   patchAnalysisCfg: (patch) => set((s) => ({ project: { ...s.project, analysis: { ...s.project.analysis, ...patch } }, dirty: true })),
+  patchStudio: (patch) => set((s) => ({ project: { ...s.project, studio: { ...s.project.studio, ...patch } }, dirty: true })),
+  setStudio: (cfg) => set((s) => ({ project: { ...s.project, studio: cfg }, dirty: true })),
   setParts: (parts) => set((s) => ({ project: { ...s.project, parts }, dirty: true })),
   updatePart: (id, patch) => set((s) => ({
     project: {

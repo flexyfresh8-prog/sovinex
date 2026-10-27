@@ -67,9 +67,9 @@ const WaveformPanel: React.FC = () => {
       const cols = peaksMin.length;
       // draw as bars per pixel
       const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, 'rgba(255,255,255,0.85)');
-      grad.addColorStop(0.5, 'rgba(168,168,168,0.9)');
-      grad.addColorStop(1, 'rgba(255,255,255,0.85)');
+      grad.addColorStop(0, 'rgba(34,211,238,0.85)');
+      grad.addColorStop(0.5, 'rgba(59,130,246,0.9)');
+      grad.addColorStop(1, 'rgba(34,211,238,0.85)');
       ctx.fillStyle = grad;
       let maxAbs = 1e-6;
       for (let i = 0; i < cols; i++) maxAbs = Math.max(maxAbs, -peaksMin[i], peaksMax[i]);
@@ -85,12 +85,12 @@ const WaveformPanel: React.FC = () => {
 
       // played region tint
       const posFrac = Math.min(position / Math.max(dur, 0.01), 1);
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillStyle = 'rgba(34,211,238,0.08)';
       ctx.fillRect(0, 0, w * posFrac, h);
       // playhead
-      ctx.strokeStyle = '#FFFFFF';
+      ctx.strokeStyle = '#e8e8e8';
       ctx.lineWidth = 1.6;
-      ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = 6;
+      ctx.shadowColor = '#e8e8e8'; ctx.shadowBlur = 6;
       ctx.beginPath(); ctx.moveTo(w * posFrac, 4); ctx.lineTo(w * posFrac, h - 4); ctx.stroke();
       ctx.shadowBlur = 0;
     };
@@ -219,27 +219,27 @@ const PhysicsPanel: React.FC = () => {
 
   const seriesMap: Record<typeof chart, { series: Series[]; refs: RefLine[]; yLabel: string }> = {
     spl: {
-      series: [{ label: 'SPL @1m', color: '#FFFFFF', x: curves.freq, y: curves.splDB, fill: true }],
-      refs: [{ y: summary.maxSplXmaxDB, color: '#E2E2E2', label: 'SPL @ Xmax' }],
+      series: [{ label: 'SPL @1m', color: '#e8e8e8', x: curves.freq, y: curves.splDB, fill: true }],
+      refs: [{ y: summary.maxSplXmaxDB, color: '#e8e8e8', label: 'SPL @ Xmax' }],
       yLabel: 'dB SPL',
     },
     excursion: {
       series: [
-        { label: 'Peak excursion', color: '#FFFFFF', x: curves.freq, y: curves.excursionMM, fill: true },
+        { label: 'Peak excursion', color: '#e8e8e8', x: curves.freq, y: curves.excursionMM, fill: true },
       ],
-      refs: [{ y: driver.xmaxMM, color: '#FFFFFF', label: `Xmax ${driver.xmaxMM} mm` }],
+      refs: [{ y: driver.xmaxMM, color: '#ffffff', label: `Xmax ${driver.xmaxMM} mm` }],
       yLabel: 'mm',
     },
     impedance: {
-      series: [{ label: '|Z|', color: '#A8A8A8', x: curves.freq, y: curves.impedanceOhm }],
+      series: [{ label: '|Z|', color: '#b9b9b9', x: curves.freq, y: curves.impedanceOhm }],
       refs: [{ y: driver.reOhm, color: 'rgba(160,160,160,0.5)', label: `Re ${driver.reOhm} Ω` }],
       yLabel: 'Ω',
     },
     port: {
       series: box.type === 'ported'
-        ? [{ label: 'Port air velocity', color: '#D4D4D4', x: curves.freq, y: curves.portVelMS, fill: true }]
+        ? [{ label: 'Port air velocity', color: '#9a9a9a', x: curves.freq, y: curves.portVelMS, fill: true }]
         : [],
-      refs: box.type === 'ported' ? [{ y: 17, color: '#FFFFFF', label: 'Chuffing 17 m/s' }] : [],
+      refs: box.type === 'ported' ? [{ y: 17, color: '#ffffff', label: 'Chuffing 17 m/s' }] : [],
       yLabel: 'm/s',
     },
   };

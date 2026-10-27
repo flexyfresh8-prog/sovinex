@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#060606">
+<meta name="theme-color" content="#070708">
 <meta name="description" content="Sonivex Studio — professional subwoofer design, audio-driven physics simulation and virtual test bench for Windows. Design. Simulate. Validate.">
 <meta property="og:title" content="Sonivex Studio — Design. Simulate. Validate.">
-<meta property="og:description" content="Professional subwoofer lab for Windows: import your 3D model, play your music, watch real electro-acoustic physics in real time.">
+<meta property="og:description" content="A fully procedural, ultra-detailed subwoofer driver built in code — 14 independently modeled components, real electro-acoustic physics, rendered in strict black & white.">
 <meta property="og:image" content="assets/icon.png">
 <link rel="icon" type="image/png" href="assets/icon.png">
 <link rel="apple-touch-icon" href="assets/icon.png">
 <title>Sonivex Studio — Design. Simulate. Validate.</title>
 <script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/","three/examples/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
 </script>
 <style>
 :root{
-  --bg-0:#060606; --bg-1:#0A0A0A; --bg-2:#101010; --bg-3:#151515; --bg-4:#1C1C1C;
-  --line:#1F1F1F; --line-2:#242424;
-  --accent:#FFFFFF; --accent-dim:#8A8A8A; --accent-deep:#3A3A3A;
-  --txt-0:#EDEDED; --txt-1:#A3A3A3; --txt-2:#6A6A6A;
+  --bg-0:#070708; --bg-1:#0b0b0d; --bg-2:#101013; --bg-3:#161619; --bg-4:#1d1d21;
+  --line:#1c1c20; --line-2:#26262b;
+  --accent:#f2f2f2; --accent-dim:#9a9a9a; --accent-deep:#2c2c2e;
+  --txt-0:#ececec; --txt-1:#a3a3a8; --txt-2:#5f5f66;
   --radius:16px; --maxw:720px;
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
   --mono:"Cascadia Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -31,7 +31,7 @@ body{
   line-height:1.6; overflow-x:hidden;
   padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right);
 }
-::selection{background:rgba(255,255,255,.28)}
+::selection{background:rgba(255,255,255,.22)}
 a{color:var(--accent);text-decoration:none}
 img,svg{display:block}
 .mono{font-family:var(--mono)}
@@ -41,14 +41,14 @@ nav{
   position:sticky;top:0;z-index:50;
   display:flex;align-items:center;justify-content:space-between;
   padding:12px calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left));
-  background:rgba(6,6,6,.82); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  background:rgba(7,7,8,.82); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
   border-bottom:1px solid var(--line);
 }
 .brand{display:flex;align-items:center;gap:10px;color:var(--txt-0);font-weight:800;letter-spacing:.14em;font-size:.95rem}
 .brand .mark{
   width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
-  background:linear-gradient(135deg,#262626,#101010);border:1px solid var(--accent-deep);
-  box-shadow:0 0 18px rgba(255,255,255,.22) inset;
+  background:linear-gradient(135deg,#1c1c1f,#0c0c0e);border:1px solid var(--accent-deep);
+  box-shadow:0 0 18px rgba(255,255,255,.10) inset;
 }
 .brand b{color:var(--accent)}
 .nav-links{display:flex;gap:6px}
@@ -63,13 +63,13 @@ nav{
   position:relative; text-align:center;
   padding:64px 20px 48px;
   background:
-    radial-gradient(1000px 480px at 50% -10%, rgba(255,255,255,.09), transparent 62%),
-    radial-gradient(700px 380px at 82% 8%, rgba(138,138,138,.10), transparent 60%);
+    radial-gradient(1000px 480px at 50% -10%, rgba(255,255,255,.055), transparent 62%),
+    radial-gradient(700px 380px at 82% 8%, rgba(255,255,255,.03), transparent 60%);
 }
 .kicker{
   display:inline-flex;align-items:center;gap:8px;
   font-family:var(--mono);font-size:.68rem;letter-spacing:.22em;color:var(--accent);
-  border:1px solid var(--accent-deep);background:rgba(138,138,138,.12);
+  border:1px solid var(--accent-deep);background:rgba(255,255,255,.04);
   padding:7px 14px;border-radius:999px;text-transform:uppercase;
 }
 .kicker .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:blink 1.6s ease-in-out infinite}
@@ -78,7 +78,7 @@ nav{
   margin:22px 0 14px;font-size:clamp(2.3rem,9vw,3.6rem);line-height:1.08;letter-spacing:-.02em;font-weight:800;
 }
 .hero h1 .grad{
-  background:linear-gradient(92deg,var(--txt-0) 15%,var(--accent) 60%,#F0F0F0);
+  background:linear-gradient(92deg,var(--txt-0) 20%,var(--accent-dim) 90%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
 .hero .lede{color:var(--txt-1);font-size:1.02rem;max-width:34rem;margin:0 auto 28px}
@@ -90,10 +90,10 @@ nav{
 }
 .btn:active{transform:scale(.975)}
 .btn-primary{
-  color:#0A0A0A;background:linear-gradient(180deg,#ECECEC,#C9C9C9);
-  box-shadow:0 10px 34px rgba(255,255,255,.28),0 2px 0 rgba(255,255,255,.25) inset;
+  color:#0a0a0a;background:linear-gradient(180deg,#ffffff,#cfcfcf);
+  box-shadow:0 10px 34px rgba(255,255,255,.14),0 2px 0 rgba(255,255,255,.4) inset;
 }
-.btn-ghost{color:var(--txt-0);background:rgba(15,19,25,.7);border-color:var(--line-2)}
+.btn-ghost{color:var(--txt-0);background:rgba(16,16,19,.7);border-color:var(--line-2)}
 .btn-ghost:active{background:var(--bg-3)}
 .hero-note{margin-top:16px;color:var(--txt-2);font-size:.78rem;font-family:var(--mono)}
 
@@ -102,32 +102,32 @@ nav{
 .sub .frame{
   position:absolute;inset:0;border-radius:50%;
   background:
-    radial-gradient(circle at 32% 28%, #2D2D2D 0%, #171717 42%, #0D0D0D 78%),
-    linear-gradient(145deg,#1C1C1C,#0A0A0A);
+    radial-gradient(circle at 32% 28%, #2a2a2e 0%, #161619 42%, #0a0a0c 78%),
+    linear-gradient(145deg,#1a1a1e,#0a0a0c);
   border:1px solid var(--line-2);
-  box-shadow:0 30px 80px rgba(0,0,0,.65), 0 0 0 8px #0d1117, 0 0 60px rgba(255,255,255,.08);
+  box-shadow:0 30px 80px rgba(0,0,0,.65), 0 0 0 8px #0c0c0e, 0 0 60px rgba(255,255,255,.05);
 }
 .sub .ring{
-  position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.16);
+  position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.12);
 }
 .sub .r1{inset:14px}
-.sub .r2{inset:34px;border-color:rgba(255,255,255,.24)}
+.sub .r2{inset:34px;border-color:rgba(255,255,255,.18)}
 .sub .cone{
   position:absolute;inset:44px;border-radius:50%;
   background:
-    radial-gradient(circle at 34% 30%, #303030 0%, #1F1F1F 45%, #111111 80%);
-  box-shadow:0 14px 34px rgba(0,0,0,.6), 0 0 0 6px rgba(10,13,17,.9), 0 0 0 7px rgba(90,90,90,.5);
+    radial-gradient(circle at 34% 30%, #2c2c31 0%, #1c1c20 45%, #0f0f12 80%);
+  box-shadow:0 14px 34px rgba(0,0,0,.6), 0 0 0 6px rgba(10,10,12,.9), 0 0 0 7px rgba(80,80,86,.5);
   animation:excursion 1.6s cubic-bezier(.45,0,.25,1) infinite;
 }
 .sub .dust{
   position:absolute;inset:88px;border-radius:50%;
-  background:radial-gradient(circle at 36% 30%, #3D3D3D, #151515 72%);
-  box-shadow:0 8px 20px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.12);
+  background:radial-gradient(circle at 36% 30%, #3a3a40, #141417 72%);
+  box-shadow:0 8px 20px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.08);
   animation:excursion 1.6s cubic-bezier(.45,0,.25,1) infinite;
 }
 .sub .glow{
   position:absolute;inset:-26px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle, rgba(255,255,255,.10) 0%, transparent 62%);
+  background:radial-gradient(circle, rgba(255,255,255,.07) 0%, transparent 62%);
   animation:blink 1.6s ease-in-out infinite;
 }
 @keyframes excursion{0%,100%{transform:scale(1)}18%{transform:scale(1.045)}46%{transform:scale(.985)}}
@@ -135,7 +135,7 @@ nav{
   position:absolute;left:50%;bottom:-38px;transform:translateX(-50%);
   display:flex;gap:7px;align-items:flex-end;height:34px;
 }
-.bars i{width:7px;border-radius:3px;background:linear-gradient(180deg,var(--accent),rgba(255,255,255,.12));animation:eq 1.15s ease-in-out infinite}
+.bars i{width:7px;border-radius:3px;background:linear-gradient(180deg,var(--accent),rgba(255,255,255,.08));animation:eq 1.15s ease-in-out infinite}
 .bars i:nth-child(1){height:34%;animation-delay:0s}
 .bars i:nth-child(2){height:78%;animation-delay:.12s}
 .bars i:nth-child(3){height:100%;animation-delay:.24s}
@@ -160,7 +160,7 @@ nav{
 #stage{
   position:relative;width:100%;aspect-ratio:1/1.06;min-height:320px;
   background:
-    radial-gradient(600px 320px at 50% 0%, rgba(255,255,255,.06), transparent 60%),
+    radial-gradient(600px 320px at 50% 0%, rgba(255,255,255,.04), transparent 60%),
     var(--bg-0);
 }
 #stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
@@ -185,7 +185,7 @@ nav{
   color:var(--txt-0);font-weight:600;font-size:.85rem;cursor:pointer;
 }
 .demo-bar .chip:active{background:var(--bg-3)}
-.demo-bar .chip.on{border-color:var(--accent-deep);color:var(--accent);box-shadow:0 0 16px rgba(255,255,255,.14) inset}
+.demo-bar .chip.on{border-color:var(--accent-dim);color:var(--accent);box-shadow:0 0 16px rgba(255,255,255,.08) inset}
 .demo-bar .grow{flex:1}
 .hud{display:flex;gap:14px;font-family:var(--mono);font-size:.78rem;color:var(--txt-2)}
 .hud b{color:var(--accent);font-weight:600}
@@ -195,13 +195,13 @@ nav{
 @media(min-width:640px){.grid{grid-template-columns:1fr 1fr}.grid.g3{grid-template-columns:1fr 1fr 1fr}}
 .card{
   border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px;
-  background:linear-gradient(180deg,var(--bg-2),#0D0D0D);
+  background:linear-gradient(180deg,var(--bg-2),#0b0b0d);
   transition:border-color .25s, transform .25s;
 }
 .card:active{transform:translateY(1px)}
 .card .ico{
   width:42px;height:42px;border-radius:12px;display:grid;place-items:center;margin-bottom:14px;
-  background:rgba(138,138,138,.14);border:1px solid var(--accent-deep);color:var(--accent);
+  background:rgba(255,255,255,.05);border:1px solid var(--accent-deep);color:var(--accent);
 }
 .card h3{font-size:.99rem;margin-bottom:6px;letter-spacing:.01em}
 .card p{color:var(--txt-1);font-size:.85rem}
@@ -227,9 +227,9 @@ nav{
 .dl-card{
   display:flex;align-items:center;gap:16px;
   border:1px solid var(--line-2);border-radius:var(--radius);padding:18px;
-  background:linear-gradient(180deg,var(--bg-2),#0D0D0D);
+  background:linear-gradient(180deg,var(--bg-2),#0b0b0d);
 }
-.dl-card .ic{flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.1);border:1px solid var(--accent-deep);color:var(--accent)}
+.dl-card .ic{flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--accent-deep);color:var(--accent)}
 .dl-card .meta{flex:1;min-width:0}
 .dl-card .meta b{display:block;font-size:.95rem}
 .dl-card .meta span{color:var(--txt-2);font-size:.78rem;font-family:var(--mono)}
@@ -238,11 +238,11 @@ nav{
   border-radius:11px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--accent);font-weight:700;font-size:.85rem;padding:0 14px;
 }
 .callout{
-  margin-top:18px;border:1px solid rgba(212,212,212,.25);background:rgba(212,212,212,.06);
-  border-radius:14px;padding:14px 16px;font-size:.82rem;color:#D4D4D4;
+  margin-top:18px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.035);
+  border-radius:14px;padding:14px 16px;font-size:.82rem;color:#c9c9c9;
 }
-.callout b{color:#E2E2E2}
-.callout code{font-family:var(--mono);font-size:.78rem;color:#D9D9D9}
+.callout b{color:#f2f2f2}
+.callout code{font-family:var(--mono);font-size:.78rem;color:#e6e6e6}
 
 /* ---------- docs links ---------- */
 .doclinks{display:grid;gap:10px}
@@ -259,7 +259,7 @@ nav{
 footer{
   margin-top:64px;border-top:1px solid var(--line);padding:30px 20px calc(34px + env(safe-area-inset-bottom));
   text-align:center;color:var(--txt-2);font-size:.78rem;
-  background:linear-gradient(180deg,transparent,rgba(255,255,255,.03));
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.02));
 }
 footer .fbrand{font-weight:800;letter-spacing:.16em;color:var(--txt-1)}
 footer .fbrand b{color:var(--accent)}
@@ -280,8 +280,8 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
 <nav>
   <a class="brand" href="#top" aria-label="Sonivex Studio home">
     <span class="mark">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2">
-        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="#FFFFFF"/>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f2f2f2" stroke-width="2">
+        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="#f2f2f2"/>
       </svg>
     </span>
     SONIVEX<b>STUDIO</b>
@@ -296,7 +296,7 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
 <header class="hero" id="top">
   <span class="kicker"><span class="dot"></span> Professional subwoofer lab · Windows x64</span>
   <h1>Design. Simulate.<br><span class="grad">Validate.</span></h1>
-  <p class="lede">Import your 15-part subwoofer model, assign every part, play your own music — and watch real electro-acoustic physics drive the cone in real time. A virtual test bench on your desktop.</p>
+  <p class="lede">A subwoofer driver built entirely in code — 14 independently modeled, individually customizable components assembled with real mechanical relationships. Play your music and watch honest electro-acoustic physics drive the cone. Pure black &amp; white.</p>
   <div class="cta-row">
     <a class="btn btn-primary" href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -307,7 +307,7 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
       Launch live 3D preview
     </a>
   </div>
-  <p class="hero-note">v1.1.0 · black &amp; white edition · installer + portable · 50/50 unit tests passing</p>
+  <p class="hero-note">v1.2.0 · procedural driver studio · 64/64 unit tests passing</p>
 
   <div class="sub" aria-hidden="true">
     <div class="glow"></div>
@@ -323,21 +323,21 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
 <section class="section" id="demo">
   <div class="sec-head" data-reveal>
     <span class="kicker">Live on this page</span>
-    <h2>Your actual model, in your pocket</h2>
-    <p>This is not a video — it is a precision-built 15-part subwoofer, generated procedurally on your device with the same motion system the desktop app uses. Tap the beat and watch the cone pump.</p>
+    <h2>The driver, generated on your device</h2>
+    <p>Nothing is downloaded — the geometry is computed in your browser by the same Driver Studio engine the Windows app uses. Tap the beat, explode the assembly, orbit around the motor.</p>
   </div>
   <div class="demo-shell" data-reveal>
     <div id="stage">
       <div class="stage-overlay" id="stageOverlay">
         <img src="assets/icon.png" alt="Sonivex Studio icon">
-        <div class="t1">15-part procedural subwoofer</div>
-        <div class="t2">Touch to orbit · pinch to zoom · cone driven by a synthesized 36 Hz bass beat</div>
+        <div class="t1">Procedural driver studio</div>
+        <div class="t2">14 components built in code · touch to orbit · pinch to zoom · cone driven by a synthesized 36 Hz bass beat</div>
         <button class="btn btn-primary" id="btnLoad3D" style="min-width:220px">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/></svg>
-          Launch 3D preview · no download
+          Launch 3D preview · instant
         </button>
         <div class="progress" id="prog"><i id="progFill"></i></div>
-        <div class="status" id="stageStatus">runs locally · built in your browser in seconds</div>
+        <div class="status" id="stageStatus">runs locally · three.js fetched once from CDN</div>
       </div>
     </div>
     <div class="demo-bar" id="demoBar" hidden>
@@ -349,6 +349,7 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
         Sound
       </button>
+      <button class="chip" id="btnExplode"><span>Explode</span></button>
       <button class="chip" id="btnReset">Reset view</button>
       <span class="grow"></span>
       <div class="hud">
@@ -362,27 +363,27 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
 <section class="section" id="features">
   <div class="sec-head" data-reveal>
     <span class="kicker">Inside the app</span>
-    <h2>A complete virtual subwoofer lab</h2>
-    <p>Sonivex Studio is a native Windows application — no browser, no cloud. Everything computes locally on your machine.</p>
+    <h2>A complete driver engineering studio</h2>
+    <p>Sonivex Studio is a native Windows application — no browser, no cloud. Everything computes locally on your machine, in a strictly monochrome workspace.</p>
   </div>
   <div class="grid" data-reveal>
     <div class="card">
       <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg></div>
-      <h3>15-part model import</h3>
-      <p>GLB · GLTF · OBJ · FBX. Every mesh stays an individual part — nothing merged, nothing deleted. Part #3 is auto-assigned as the cone; all roles are editable.</p>
-      <span class="tag">Import</span>
+      <h3>Fully procedural driver models</h3>
+      <p>No downloaded meshes. The driver is generated in code — cone, dust cap, surround roll, voice coil &amp; former, spider, magnet stack, plates, pole, basket, gasket, terminals, tinsel leads and hardware, each an independent named part.</p>
+      <span class="tag">Modeling</span>
     </div>
     <div class="card">
       <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg></div>
-      <h3>Real part customization</h3>
-      <p>Change cone diameter, surround width, magnet stack, box volume, port geometry — the 3D assembly regenerates live and every physics number recomputes instantly.</p>
+      <h3>Component-level customization</h3>
+      <p>Roll height, roll width, coil diameter, winding layers, magnet stack, spoke count, flange thickness — sliders and precise numeric fields in mm or inches, with live warnings when parts collide.</p>
       <span class="tag">Design</span>
     </div>
     <div class="card">
-      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-      <h3>Play your own MP3s</h3>
-      <p>MP3 · WAV · FLAC · OGG with full transport, waveform and live spectrum. Four synthesized test signals are built in too — no assets needed.</p>
-      <span class="tag">Audio</span>
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M21 15v6M18 18h6"/></svg></div>
+      <h3>Assembly &amp; exploded views</h3>
+      <p>Complete System, Driver Only (no enclosure in the scene at all), animated Exploded view with adjustable separation, and Component Focus — with one-click assemble and per-part isolation.</p>
+      <span class="tag">Inspect</span>
     </div>
     <div class="card">
       <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6"/></svg></div>
@@ -391,16 +392,16 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
       <span class="tag">Simulation</span>
     </div>
     <div class="card">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+      <h3>Play your own MP3s</h3>
+      <p>MP3 · WAV · FLAC · OGG with full transport, waveform and live spectrum. Four synthesized test signals are built in too — no assets needed.</p>
+      <span class="tag">Audio</span>
+    </div>
+    <div class="card">
       <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20v-4M18 20V10"/><rect x="2" y="2" width="20" height="20" rx="3"/></svg></div>
       <h3>Xmax &amp; chuffing gauges</h3>
       <p>Live excursion gauge with Xmax limit, cone velocity and acceleration, SPL estimate, port air velocity against the 17 m/s chuffing threshold. Bottoming-out risk per track.</p>
       <span class="tag">Validate</span>
-    </div>
-    <div class="card">
-      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg></div>
-      <h3>Projects &amp; reports</h3>
-      <p>Versioned <span class="mono">.svx</span> projects with autosave and crash recovery. Export curve data to CSV or a formatted PDF engineering report.</p>
-      <span class="tag">Workflow</span>
     </div>
   </div>
 </section>
@@ -440,12 +441,12 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
   <div class="dl" data-reveal>
     <a class="dl-card" href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">
       <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
-      <span class="meta"><b>Sonivex-Studio-Setup-1.1.0.exe</b><span>installer · shortcuts · uninstaller · .svx association</span></span>
+      <span class="meta"><b>Sonivex-Studio-Setup-1.2.0.exe</b><span>installer · shortcuts · uninstaller · .svx association</span></span>
       <span class="go">GET</span>
     </a>
     <a class="dl-card" href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">
       <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg></span>
-      <span class="meta"><b>Sonivex-Studio-Portable-1.1.0.exe</b><span>single file · runs from USB · no installation</span></span>
+      <span class="meta"><b>Sonivex-Studio-Portable-1.2.0.exe</b><span>single file · runs from USB · no installation</span></span>
       <span class="go">GET</span>
     </a>
   </div>
@@ -480,7 +481,7 @@ footer p{max-width:30rem;margin:0 auto;line-height:1.7}
     <a href="https://github.com/flexyfresh8-prog/sovinex/actions" target="_blank" rel="noopener">CI builds</a>
     <a href="https://github.com/flexyfresh8-prog/sovinex/releases/latest" target="_blank" rel="noopener">Releases</a>
   </div>
-  <p>Built with Electron · React · TypeScript · Three.js. Physics are honest estimates from published electro-acoustic models — clearly labeled, never fabricated.</p>
+  <p>Built with Electron · React · TypeScript · Three.js. The driver geometry is fully procedural — generated by the same engine that powers this page. Physics are honest estimates from published electro-acoustic models, clearly labeled, never fabricated.</p>
   <p style="margin-top:10px">© 2026 Sonivex Engineering · MIT License</p>
 </footer>
 

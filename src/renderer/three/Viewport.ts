@@ -19,7 +19,7 @@ export interface ViewportCallbacks {
   onEmptyClick: () => void;
 }
 
-export type StandardView = 'front' | 'back' | 'left' | 'right' | 'top' | 'iso';
+export type StandardView = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' | 'iso';
 
 const easeInOutQuint = (t: number): number => (t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2);
 
@@ -54,6 +54,10 @@ export class Viewport {
   private cb: ViewportCallbacks;
   private disposed = false;
   private clock = new THREE.Clock();
+  private lights: {
+    ambient: THREE.AmbientLight; key: THREE.DirectionalLight;
+    fill: THREE.DirectionalLight; rim: THREE.SpotLight; rim2: THREE.SpotLight;
+  } = {} as never;
 
   constructor(container: HTMLElement, cb: ViewportCallbacks) {
     this.cb = cb;
@@ -68,8 +72,9 @@ export class Viewport {
     container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color('#0A0A0A');
-    this.scene.fog = new THREE.Fog('#0A0A0A', 6, 18);
+    this.scene.background = new THREE.Color('#0a0a0b');
+    this.scene.fog = new THREE.Fog('#0a0a0b', 6, 18);
+    this.renderer.localClippingEnabled = true;
 
     const aspect = container.clientWidth / Math.max(container.clientHeight, 1);
     this.camera = new THREE.PerspectiveCamera(38, aspect, 0.02, 60);
@@ -93,29 +98,33 @@ export class Viewport {
     this.scene.environment = envTex;
     pmrem.dispose();
 
-    // lights
-    const key = new THREE.DirectionalLight('#FFFFFF', 2.6);
-    key.position.set(2.6, 4.2, 2.2);
-    key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
-    key.shadow.camera.left = -2; key.shadow.camera.right = 2;
-    key.shadow.camera.top = 2.6; key.shadow.camera.bottom = -1;
-    key.shadow.camera.far = 12;
-    key.shadow.bias = -0.0004;
-    key.shadow.radius = 5;
-    this.scene.add(key);
+    // lights — strictly achromatic; presets adjust intensities (setLighting)
+    this.lights.ambient = new THREE.AmbientLight('#ffffff', 0.12);
+    this.scene.add(this.lights.ambient);
 
-    const fill = new THREE.DirectionalLight('#CCCCCC', 0.55);
-    fill.position.set(-3, 1.6, -2.4);
-    this.scene.add(fill);
+    this.lights.key = new THREE.DirectionalLight('#ffffff', 2.6);
+    this.lights.key.position.set(2.6, 4.2, 2.2);
+    this.lights.key.castShadow = true;
+    this.lights.key.shadow.mapSize.set(2048, 2048);
+    this.lights.key.shadow.camera.left = -2; this.lights.key.shadow.camera.right = 2;
+    this.lights.key.shadow.camera.top = 2.6; this.lights.key.shadow.camera.bottom = -1;
+    this.lights.key.shadow.camera.far = 12;
+    this.lights.key.shadow.bias = -0.0004;
+    this.lights.key.shadow.radius = 5;
+    this.scene.add(this.lights.key);
 
-    const rim = new THREE.SpotLight('#FFFFFF', 13, 9, 0.7, 0.55, 1.6);
-    rim.position.set(-2.2, 2.4, -2.8);
-    this.scene.add(rim);
+    this.lights.fill = new THREE.DirectionalLight('#dcdcdc', 0.55);
+    this.lights.fill.position.set(-3, 1.6, -2.4);
+    this.scene.add(this.lights.fill);
 
-    const rim2 = new THREE.SpotLight('#A8A8A8', 8, 9, 0.8, 0.6, 1.8);
-    rim2.position.set(2.4, 1.2, -3.0);
-    this.scene.add(rim2);
+    this.lights.rim = new THREE.SpotLight('#f0f0f0', 20, 9, 0.7, 0.55, 1.6);
+    this.lights.rim.position.set(-2.2, 2.4, -2.8);
+    this.scene.add(this.lights.rim);
+
+    this.lights.rim2 = new THREE.SpotLight('#c8c8c8', 12, 9, 0.8, 0.6, 1.8);
+    this.lights.rim2.position.set(2.4, 1.2, -3.0);
+    this.scene.add(this.lights.rim2);
+    this.setLighting('studio');
 
     // ground: soft gradient disc + shadow catcher
     this.ground = new THREE.Mesh(
@@ -135,7 +144,7 @@ export class Viewport {
 
     // grid: rings + axes, engineering look
     this.grid = new THREE.Group();
-    const gridMat = new THREE.LineBasicMaterial({ color: '#303030', transparent: true, opacity: 0.5 });
+    const gridMat = new THREE.LineBasicMaterial({ color: '#232327', transparent: true, opacity: 0.55 });
     for (let r = 0.5; r <= 2.5; r += 0.5) {
       const pts: THREE.Vector3[] = [];
       for (let i = 0; i <= 96; i++) {
@@ -144,11 +153,11 @@ export class Viewport {
       }
       this.grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
     }
-    const axisMatX = new THREE.LineBasicMaterial({ color: '#6e6e6e', transparent: true, opacity: 0.65 });
-    const axisMatZ = new THREE.LineBasicMaterial({ color: '#e0e0e0', transparent: true, opacity: 0.65 });
+    const axisMatX = new THREE.LineBasicMaterial({ color: '#5a5a5f', transparent: true, opacity: 0.65 });
+    const axisMatZ = new THREE.LineBasicMaterial({ color: '#9a9a9f', transparent: true, opacity: 0.65 });
     this.grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2.6, 0, 0), new THREE.Vector3(2.6, 0, 0)]), axisMatX));
     this.grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -2.6), new THREE.Vector3(0, 0, 2.6)]), axisMatZ));
-    const vertAxis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.4, 0)]), new THREE.LineBasicMaterial({ color: '#2C2C2C', transparent: true, opacity: 0.5 }));
+    const vertAxis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.4, 0)]), new THREE.LineBasicMaterial({ color: '#2c2c30', transparent: true, opacity: 0.5 }));
     this.grid.add(vertAxis);
     this.scene.add(this.grid);
 
@@ -224,7 +233,8 @@ export class Viewport {
     const dirs: Record<StandardView, THREE.Vector3> = {
       front: new THREE.Vector3(0, 0.02, 1), back: new THREE.Vector3(0, 0.02, -1),
       left: new THREE.Vector3(-1, 0.02, 0), right: new THREE.Vector3(1, 0.02, 0),
-      top: new THREE.Vector3(0.001, 1, 0.001), iso: new THREE.Vector3(0.72, 0.36, 1),
+      top: new THREE.Vector3(0.001, 1, 0.001), bottom: new THREE.Vector3(0.001, -1, 0.001),
+      iso: new THREE.Vector3(0.72, 0.36, 1),
     };
     const pos = center.clone().add(dirs[view].normalize().multiplyScalar(dist));
     this.tweenCamera(pos, center);
@@ -273,6 +283,34 @@ export class Viewport {
     if (obj) obj.visible = visible;
   }
 
+  /** Lighting presets: studio / neutral inspection / dark presentation. */
+  setLighting(preset: 'studio' | 'inspection' | 'presentation'): void {
+    const l = this.lights;
+    if (preset === 'inspection') {
+      l.ambient.intensity = 0.85; l.key.intensity = 1.4; l.fill.intensity = 1.1;
+      l.rim.intensity = 4; l.rim2.intensity = 3;
+    } else if (preset === 'presentation') {
+      l.ambient.intensity = 0.05; l.key.intensity = 3.2; l.fill.intensity = 0.18;
+      l.rim.intensity = 26; l.rim2.intensity = 4;
+    } else {
+      l.ambient.intensity = 0.12; l.key.intensity = 2.6; l.fill.intensity = 0.55;
+      l.rim.intensity = 20; l.rim2.intensity = 12;
+    }
+  }
+
+  /** Fit the camera to one component (focus mode). */
+  fitToObject(partId: string): void {
+    const obj = this.partObjects.get(partId);
+    if (!obj) return;
+    const box = new THREE.Box3().setFromObject(obj);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z, 0.04);
+    const dist = maxDim * 2.3;
+    const dir = new THREE.Vector3(0.55, 0.32, 1).normalize();
+    this.tweenCamera(center.clone().add(dir.multiplyScalar(dist)), center, 0.7);
+  }
+
   setAutoRotate(on: boolean): void { this.autoRotate = on; }
   setGridVisible(on: boolean): void { this.grid.visible = on; this.ground.visible = on; }
 
@@ -287,7 +325,7 @@ export class Viewport {
           const mesh = child as THREE.Mesh;
           const edges = new THREE.LineSegments(
             new THREE.EdgesGeometry(mesh.geometry, 24),
-            new THREE.LineBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.95 }),
+            new THREE.LineBasicMaterial({ color: '#f2f2f2', transparent: true, opacity: 0.95 }),
           );
           edges.raycast = () => { /* no pick */ };
           mesh.add(edges);
@@ -298,8 +336,8 @@ export class Viewport {
       obj.traverse((child) => {
         const mesh = child as THREE.Mesh;
         if (mesh.isMesh && (mesh.material as THREE.MeshStandardMaterial).emissive) {
-          (mesh.material as THREE.MeshStandardMaterial).emissive.set('#8A8A8A');
-          (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.12;
+          (mesh.material as THREE.MeshStandardMaterial).emissive.set('#8a8a8a');
+          (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.16;
         }
       });
     });
@@ -361,7 +399,7 @@ export class Viewport {
         obj?.traverse((child) => {
           const mesh = child as THREE.Mesh;
           if (mesh.isMesh && (mesh.material as THREE.MeshStandardMaterial).emissive) {
-            (mesh.material as THREE.MeshStandardMaterial).emissive.set('#4A4A4A');
+            (mesh.material as THREE.MeshStandardMaterial).emissive.set('#4a4a4a');
             (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.1;
           }
         });
@@ -437,6 +475,9 @@ export class Viewport {
 
   private applyExplode(): void {
     if (!this.modelRoot) return;
+    // the Driver Studio manages its own exploded view through MotionSystem
+    // offsets — the viewport explode pass only handles imported models
+    if (this.modelRoot.userData.studioManaged) return;
     const center = new THREE.Box3().setFromObject(this.modelRoot).getCenter(new THREE.Vector3());
     this.partObjects.forEach((obj) => {
       const rest = this.restTransforms.get(obj);

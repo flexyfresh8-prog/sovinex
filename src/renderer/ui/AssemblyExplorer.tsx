@@ -34,6 +34,9 @@ export const AssemblyExplorer: React.FC = () => {
       setSelection(selection.includes(id) ? selection.filter((x) => x !== id) : [...selection, id]);
     } else {
       setSelection([id]);
+      // component selection reveals its customization settings in the STUDIO tab
+      const tab = useStore.getState().rightTab;
+      if (tab === 'parts' || tab === 'studio') useStore.getState().setRightTab('studio');
     }
   };
 
@@ -134,6 +137,26 @@ export const AssemblyExplorer: React.FC = () => {
             disabled={!selection.length}
             title="Toggle membership in Cone Assembly group"
           >±Group</Btn>
+        </div>
+        <div className="role-assign">
+          <span className="muted">Inspect:</span>
+          <Btn
+            variant="ghost"
+            disabled={!selection.length}
+            active={useStore.getState().project.view.viewMode === 'focus'}
+            onClick={() => controller.applyViewMode('focus')}
+            title="Isolate the selection — hide every other component"
+          >Isolate</Btn>
+          <Btn
+            variant="ghost" disabled={!selection.length}
+            onClick={() => { controller.viewport.fitToObject(selection[0]); }}
+            title="Frame the selected component"
+          >Frame</Btn>
+          <Btn
+            variant="ghost"
+            onClick={() => { controller.applyViewMode('driver'); }}
+            title="Show the complete driver again"
+          >Show All</Btn>
         </div>
       </div>
     </div>

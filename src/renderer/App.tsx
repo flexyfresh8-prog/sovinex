@@ -31,12 +31,14 @@ export const App: React.FC = () => {
   }, []);
 
   // selection → viewport sync
-  useEffect(() => { controller.refreshSelection(); }, [selection, project.parts, project.view.shading]);
+  useEffect(() => { controller.refreshSelection(); }, [selection, project.parts, project.view.shading, project.view.viewMode]);
   // view props sync
   useEffect(() => { controller.viewport.setExplode(project.view.explode); }, [project.view.explode]);
   useEffect(() => { controller.viewport.setProjection(project.view.projection === 'orthographic'); }, [project.view.projection]);
   useEffect(() => { controller.viewport.setAutoRotate(project.view.autoRotate); }, [project.view.autoRotate]);
   useEffect(() => { controller.viewport.setGridVisible(project.view.showGrid); }, [project.view.showGrid]);
+  useEffect(() => { controller.viewport.setLighting(project.view.lighting); }, [project.view.lighting]);
+  useEffect(() => { controller.updateDimensionGuides(); }, [project.view.showDimensions, project.units, selection]);
 
   // toasts from console warn/error
   const lineCount = useStore((s) => s.consoleLines.length);
@@ -80,7 +82,17 @@ export const App: React.FC = () => {
         case '3': controller.standardView('left'); break;
         case '4': controller.standardView('right'); break;
         case '5': controller.standardView('top'); break;
+        case '7': controller.standardView('bottom'); break;
         case '6': controller.standardView('iso'); break;
+        case 'e': case 'E':
+          controller.applyViewMode(useStore.getState().project.view.viewMode === 'exploded' ? 'driver' : 'exploded');
+          break;
+        case 'x': case 'X':
+          controller.setCutaway(!useStore.getState().project.view.cutaway);
+          break;
+        case 'a': case 'A':
+          controller.assembleDriver();
+          break;
         case 'Escape': useStore.getState().setSelection([]); break;
       }
     };
@@ -138,9 +150,25 @@ export const App: React.FC = () => {
                 <span className="muted mono">{hoverPart.metrics.triangleCount.toLocaleString()} tris</span>
               </div>
             )}
+            {/* view mode selector — Complete System / Driver Only / Exploded / Focus */}
+            <div className="mode-selector">
+              {([
+                ['system', 'SYSTEM'], ['driver', 'DRIVER ONLY'], ['exploded', 'EXPLODED'], ['focus', 'FOCUS'],
+              ] as const).map(([m, label]) => (
+                <button
+                  key={m}
+                  className={project.view.viewMode === m ? 'is-active' : ''}
+                  onClick={() => controller.applyViewMode(m)}
+                  title={m === 'system' ? 'Complete system — driver installed in its enclosure'
+                    : m === 'driver' ? 'Driver only — no enclosure in the scene at all'
+                    : m === 'exploded' ? 'Exploded view — components separated for inspection'
+                    : 'Component focus — isolate the selected component'}
+                >{label}</button>
+              ))}
+            </div>
             {/* view cube strip */}
             <div className="view-strip">
-              {([['front', 'F'], ['back', 'B'], ['left', 'L'], ['right', 'R'], ['top', 'T'], ['iso', 'ISO']] as const).map(([v, label]) => (
+              {([['front', 'F'], ['back', 'B'], ['left', 'L'], ['right', 'R'], ['top', 'T'], ['bottom', 'BOT'], ['iso', 'ISO']] as const).map(([v, label]) => (
                 <button key={v} onClick={() => controller.standardView(v)}>{label}</button>
               ))}
               <span className="view-strip-sep" />
@@ -159,6 +187,25 @@ export const App: React.FC = () => {
                 onClick={() => useStore.getState().patchView({ shading: project.view.shading === 'ghost' ? 'shaded' : 'ghost' })}
                 title="X-ray ghost view"
               >XRAY</button>
+              <button
+                className={project.view.cutaway ? 'is-active' : ''}
+                onClick={() => controller.setCutaway(!project.view.cutaway)}
+                title="Cutaway — clip half the driver to inspect the interior"
+              >CUT</button>
+              <span className="view-strip-sep" />
+              {(['studio', 'inspection', 'presentation'] as const).map((p) => (
+                <button
+                  key={p}
+                  className={project.view.lighting === p ? 'is-active' : ''}
+                  onClick={() => { useStore.getState().patchView({ lighting: p }); controller.viewport.setLighting(p); }}
+                  title={`${p} lighting`}
+                >{p === 'studio' ? 'STU' : p === 'inspection' ? 'INS' : 'PRS'}</button>
+              ))}
+              <button
+                className={project.view.showDimensions ? 'is-active' : ''}
+                onClick={() => { useStore.getState().patchView({ showDimensions: !project.view.showDimensions }); controller.updateDimensionGuides(); }}
+                title="Measurement guides for the selected component"
+              >DIM</button>
             </div>
             {/* explode slider */}
             <div className="explode-ctl">
@@ -195,11 +242,11 @@ export const App: React.FC = () => {
       </div>
       <div className="app-bottom"><BottomDock /></div>
       <div className="statusbar">
-        <span className="mono">SONIVEX STUDIO 1.0.0</span>
+        <span className="mono">SONIVEX STUDIO 1.2.0</span>
         <span className="muted">Design. Simulate. Validate.</span>
         <span className="statusbar-spacer" />
         <span className="mono">{selection.length ? `${selection.length} selected` : 'no selection'}</span>
-        <span className="muted">Space play · S stop · R reset · F fit · 1–6 views · Ctrl+M model · Ctrl+I audio</span>
+        <span className="muted">Space play · S stop · R reset · F fit · 1–7 views · E explode · X cutaway · Ctrl+M model · Ctrl+I audio</span>
       </div>
       <div className="toast-stack">
         {toasts.map((t) => (
@@ -213,12 +260,12 @@ export const App: React.FC = () => {
         <div className="boot-splash">
           <div className="boot-logo">
             <svg viewBox="0 0 64 64" width="72" height="72">
-              <circle cx="32" cy="32" r="27" fill="none" stroke="#3A3A3A" strokeWidth="3" />
-              <circle cx="32" cy="32" r="19" fill="none" stroke="#8A8A8A" strokeWidth="2.5" opacity="0.8">
+              <circle cx="32" cy="32" r="27" fill="none" stroke="#2e2e2e" strokeWidth="3" />
+              <circle cx="32" cy="32" r="19" fill="none" stroke="#5a5a5a" strokeWidth="2.5" opacity="0.8">
                 <animate attributeName="r" values="19;22;19" dur="2s" repeatCount="indefinite" />
               </circle>
-              <circle cx="32" cy="32" r="11" fill="none" stroke="#FFFFFF" strokeWidth="2.5" />
-              <circle cx="32" cy="32" r="4.5" fill="#F0F0F0" />
+              <circle cx="32" cy="32" r="11" fill="none" stroke="#d8d8d8" strokeWidth="2.5" />
+              <circle cx="32" cy="32" r="4.5" fill="#ffffff" />
             </svg>
           </div>
           <div className="boot-title">SONIVEX STUDIO</div>
